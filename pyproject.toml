@@ -1,0 +1,20 @@
+[project]
+name = "rag-api"
+version = "1.0.0"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.30",
+    "chromadb>=0.5",
+    "sentence-transformers>=3.0",
+    "langchain>=0.3",
+    "langchain-text-splitters>=0.3",
+    "openai>=1.55",
+    "python-multipart>=0.0.9",
+    "python-dotenv>=1.0",
+    "python-docx>=1.2",
+    "pymupdf>=1.28",
+]
+
+[tool.uv]
+dev-dependencies = []

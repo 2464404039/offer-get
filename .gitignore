@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+chroma_db/
+rag_api.db
+rag_api.db-shm
+rag_api.db-wal
+.venv/
+.DS_Store
