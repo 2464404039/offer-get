@@ -40,3 +40,19 @@ class DocumentItem(BaseModel):
     filename: str
     created_at: str
     chunk_count: int
+    doc_type: str = 'general'
+
+
+# ========== 面试 API 请求/响应模型 ==========
+
+
+class InterviewStartRequest(BaseModel):
+    resume_doc_id: int
+    jd_doc_id: Optional[int] = None
+    total_questions: int = Field(default=8, ge=3, le=15)
+
+
+class InterviewAnswerRequest(BaseModel):
+    session_id: int
+    question_id: int
+    answer: str = Field(..., min_length=1)

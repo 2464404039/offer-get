@@ -11,7 +11,7 @@ COPY . .
 
 # 提前下载 Embedding 模型（避免运行时首次请求慢）
 # 注意：需要设置 HF_ENDPOINT（在 config.py 中已设置）
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-small-zh-v1.5')"
 
 EXPOSE 8765
 

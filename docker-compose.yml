@@ -14,7 +14,7 @@ services:
       HOST: "0.0.0.0"
     volumes:
       - chroma_data:/app/chroma_db
-      - sqlite_data:/app  # 持久化 rag_api.db
+      - sqlite_data:/app/rag_api.db  # 只持久化数据库文件，不覆盖 /app
 
 volumes:
   chroma_data:

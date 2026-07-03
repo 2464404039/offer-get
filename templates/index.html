@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎯 Interview Engine</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, 'Segoe UI', sans-serif; height: 100vh; display: flex; background: #f0f2f5; }
+
+    /* ========== 左侧栏 ========== */
+    .sidebar { width: 300px; background: #1a1a2e; color: #fff; display: flex; flex-direction: column; padding: 20px; }
+    .sidebar h1 { font-size: 20px; margin-bottom: 4px; }
+    .sidebar .sub { font-size: 12px; color: #8892b0; margin-bottom: 20px; }
+
+    .upload-area { border: 2px dashed #3a3a5e; border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: .2s; margin-bottom: 16px; }
+    .upload-area:hover { border-color: #64ffda; background: rgba(100,255,218,.05); }
+    .upload-area .icon { font-size: 28px; }
+    .upload-area .text { font-size: 13px; color: #8892b0; margin-top: 6px; }
+    .upload-area .hint { font-size: 11px; color: #5a5a7a; margin-top: 4px; }
+    .upload-area.uploading { opacity: .6; pointer-events: none; }
+
+    .mode-switch { display:flex; gap:6px; margin-bottom:16px; }
+    .mode-btn { flex:1; padding:8px; border:1px solid #3a3a5e; background:transparent; color:#8892b0; border-radius:8px; cursor:pointer; font-size:13px; transition:.2s; }
+    .mode-btn:hover { border-color:#64ffda; color:#64ffda; }
+    .mode-btn.active { background:#64ffda; color:#1a1a2e; border-color:#64ffda; font-weight:600; }
+    .primary-btn { width:100%; padding:10px; border:none; background:#64ffda; color:#1a1a2e; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; transition:.2s; }
+    .primary-btn:hover { opacity:.85; }
+    .primary-btn:disabled { opacity:.4; cursor:not-allowed; }
+    .secondary-btn { width:100%; padding:8px; border:1px solid #64ffda; background:transparent; color:#64ffda; border-radius:8px; cursor:pointer; font-size:13px; transition:.2s; }
+    .secondary-btn:hover { background:rgba(100,255,218,.1); }
+
+    .doc-list { flex: 1; overflow-y: auto; }
+    .doc-list .title { font-size: 12px; color: #8892b0; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+    .doc-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: #16213e; border-radius: 6px; margin-bottom: 6px; font-size: 13px; }
+    .doc-item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .doc-item .badge { background: #0f3460; color: #64ffda; font-size: 10px; padding: 1px 6px; border-radius: 8px; margin-left: 6px; }
+    .doc-item .del { cursor: pointer; color: #e74c3c; font-size: 16px; opacity: .6; transition: .2s; background: none; border: none; }
+    .doc-item .del:hover { opacity: 1; }
+
+    /* ========== 右侧主区域 ========== */
+    .main { flex: 1; display: flex; flex-direction: column; }
+    .chat-header { padding: 16px 24px; background: #fff; border-bottom: 1px solid #e8e8e8; font-size: 14px; color: #666; }
+    .chat-header strong { color: #1a1a2e; }
+
+    .messages { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+    .msg { max-width: 80%; padding: 12px 16px; border-radius: 12px; line-height: 1.6; font-size: 14px; word-wrap: break-word; }
+    .msg.user { background: #1a1a2e; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .msg.bot { background: #fff; color: #333; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .msg.bot pre { background: #f5f5f5; padding: 8px; border-radius: 6px; overflow-x: auto; font-size: 13px; margin: 8px 0; }
+    .msg.bot code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-size: 13px; }
+    .msg.bot table { border-collapse: collapse; margin: 8px 0; width: 100%; font-size: 13px; }
+    .msg.bot th, .msg.bot td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; }
+    .msg.bot th { background: #f5f5f5; }
+
+    .sources { margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee; font-size: 12px; }
+    .sources .label { color: #999; }
+    .source-item { color: #1a73e8; margin: 2px 0; }
+
+    .typing { display: flex; gap: 4px; padding: 12px 16px; }
+    .typing span { width: 6px; height: 6px; background: #ccc; border-radius: 50%; animation: bounce 1.4s infinite; }
+    .typing span:nth-child(2) { animation-delay: .2s; }
+    .typing span:nth-child(3) { animation-delay: .4s; }
+    @keyframes bounce { 0%,80%,100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
+
+    .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #bbb; }
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state .text { font-size: 14px; }
+
+    .input-area { padding: 16px 24px; background: #fff; border-top: 1px solid #e8e8e8; display: flex; gap: 10px; }
+    .input-area input { flex: 1; padding: 10px 16px; border: 1px solid #ddd; border-radius: 24px; font-size: 14px; outline: none; transition: .2s; }
+    .input-area input:focus { border-color: #1a1a2e; }
+    .input-area button { width: 40px; height: 40px; border: none; border-radius: 50%; background: #1a1a2e; color: #fff; font-size: 18px; cursor: pointer; transition: .2s; display: flex; align-items: center; justify-content: center; }
+    .input-area button:hover { background: #16213e; }
+    .input-area button:disabled { background: #ccc; cursor: not-allowed; }
+
+    .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 24px; border-radius: 8px; font-size: 13px; opacity: 0; transition: .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+
+    /* 滚动条 */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+
+    /* ========== 设置面板 ========== */
+    .gear-btn { float: right; cursor: pointer; font-size: 18px; opacity: .6; transition: .2s; user-select: none; }
+    .gear-btn:hover { opacity: 1; }
+
+    /* 文档类型标签按钮 */
+    .type-btn { flex:1; padding:5px 4px; border:1px solid #3a3a5e; background:transparent; color:#8892b0; border-radius:6px; cursor:pointer; font-size:11px; transition:.2s; }
+    .type-btn:hover { border-color:#64ffda; color:#64ffda; }
+    .type-btn.active { background:#64ffda; color:#1a1a2e; border-color:#64ffda; font-weight:600; }
+
+    /* 文档列表中的类型标签 */
+    .doc-type-tag { font-size:10px; padding:1px 5px; border-radius:4px; margin-left:4px; }
+    .settings-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100; }
+    .settings-overlay.show { display: block; }
+    .settings-panel { position: fixed; top: 0; right: -360px; width: 340px; height: 100%; background: #fff;
+      z-index: 101; transition: right .3s; box-shadow: -2px 0 12px rgba(0,0,0,.1); display: flex; flex-direction: column; }
+    .settings-panel.show { right: 0; }
+    .settings-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #eee; font-size: 16px; }
+    .settings-close { cursor: pointer; font-size: 18px; opacity: .5; transition: .2s; }
+    .settings-close:hover { opacity: 1; }
+    .settings-body { padding: 20px; flex: 1; overflow-y: auto; }
+    .setting-row { margin-bottom: 20px; }
+    .setting-row label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; }
+    .setting-row input[type=range] { width: 100%; accent-color: #1a1a2e; }
+    .danger-btn { width: 100%; padding: 10px; border: 1px solid #e74c3c; background: #fff; color: #e74c3c; border-radius: 8px;
+      cursor: pointer; font-size: 14px; transition: .2s; margin-bottom: 16px; }
+    .danger-btn:hover { background: #e74c3c; color: #fff; }
+    .sys-info { font-size: 12px; color: #999; line-height: 1.8; padding-top: 12px; border-top: 1px solid #eee; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <h1>📚 求职助手</h1>
+  <div class="sub">RAG · AI 面试官 · 简历分析</div>
+
+  <!-- 模式切换 -->
+  <div class="mode-switch">
+    <button class="mode-btn active" id="modeChat" onclick="switchMode('chat')">💬 问答</button>
+    <button class="mode-btn" id="modeInterview" onclick="switchMode('interview')">🎤 面试</button>
+  </div>
+
+  <!-- ===== 问答模式面板 ===== -->
+  <div id="chatPanel">
+    <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+      <div class="icon">📄</div>
+      <div class="text">点击上传文档</div>
+      <div class="hint">支持 .txt .md .pdf .docx</div>
+      <input type="file" id="fileInput" accept=".txt,.md,.pdf,.docx" style="display:none" onchange="uploadFile(this)">
+    </div>
+
+    <!-- 文档类型选择 -->
+    <div class="doc-type-select" style="display:flex;gap:4px;margin-bottom:12px;font-size:12px">
+      <button class="type-btn active" data-type="general" onclick="selectDocType(this)">📄 通用</button>
+      <button class="type-btn" data-type="resume" onclick="selectDocType(this)">📋 简历</button>
+      <button class="type-btn" data-type="jd" onclick="selectDocType(this)">📌 岗位描述</button>
+    </div>
+
+    <div class="doc-list">
+      <div class="title">已上传文档</div>
+      <div id="docList"></div>
+    </div>
+  </div>
+
+  <!-- ===== 面试模式面板 ===== -->
+  <div id="interviewPanel" style="display:none">
+    <div class="doc-list" style="flex:0;margin-bottom:12px">
+      <div class="title">选择简历文档</div>
+      <div id="resumeSelect"></div>
+    </div>
+    <div class="doc-list" style="flex:0;margin-bottom:12px">
+      <div class="title">岗位描述（可选）</div>
+      <div id="jdSelect"></div>
+    </div>
+    <div class="setting-row" style="padding:0 0 12px 0">
+      <label>题目数量：<span id="qCountVal">8</span></label>
+      <input type="range" id="qCountSlider" min="3" max="15" value="8" oninput="document.getElementById('qCountVal').textContent=this.value">
+    </div>
+    <button class="primary-btn" id="startInterviewBtn" onclick="startInterview()">🎬 开始面试</button>
+    <div style="margin-top:16px;border-top:1px solid #3a3a5e;padding-top:12px">
+      <div class="title" style="font-size:12px;color:#8892b0;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">📋 历史记录</div>
+      <div id="interviewHistory"></div>
+      <button class="secondary-btn" onclick="clearHistory()" style="margin-top:8px;font-size:12px;display:none" id="clearHistoryBtn">🗑 清除记录</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="chat-header" id="chatHeader">💬 <strong>智能问答</strong> — 基于已上传文档的内容 <span class="gear-btn" onclick="toggleSettings()" title="设置">⚙</span></div>
+
+  <!-- ===== 问答模式 ===== -->
+  <div id="chatMode">
+    <div class="messages" id="messages">
+      <div class="empty-state" id="emptyState">
+        <div class="icon">💡</div>
+        <div class="text">上传文档后，在这里提问</div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <input type="text" id="queryInput" placeholder="输入你的问题..." onkeydown="if(event.key==='Enter') sendQuery()">
+      <button id="sendBtn" onclick="sendQuery()">➤</button>
+    </div>
+  </div>
+
+  <!-- ===== 面试模式 ===== -->
+  <div id="interviewMode" style="display:none;flex:1;display:none;flex-direction:column">
+    <!-- 面试进行中 -->
+    <div id="interviewProgress" style="display:none;flex:1;flex-direction:column">
+      <div class="chat-header" id="interviewHeader">🎤 <strong>模拟面试</strong> — <span id="qProgress">第 1/8 题</span></div>
+
+      <!-- 题目展示 -->
+      <div class="interview-question" id="questionArea" style="flex:1;overflow-y:auto;padding:24px">
+        <div class="q-badge" id="qBadge">📌 技术深度 · 中等难度</div>
+        <div class="q-text" id="qText" style="font-size:16px;line-height:1.8;color:#333;margin-bottom:16px"></div>
+        <div class="q-hint" id="qHint" style="font-size:13px;color:#999;background:#f5f5f5;padding:10px 14px;border-radius:8px;margin-bottom:16px"></div>
+
+        <!-- 回答输入 -->
+        <textarea id="answerInput" placeholder="输入你的回答..." style="width:100%;min-height:120px;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:14px;resize:vertical;outline:none;box-sizing:border-box" onkeydown="if(event.key==='Enter'&&event.shiftKey){event.preventDefault();submitAnswer()}"></textarea>
+        <button class="primary-btn" id="submitAnswerBtn" onclick="submitAnswer()" style="margin-top:10px">📨 提交回答</button>
+      </div>
+    </div>
+
+    <!-- 评分展示 -->
+    <div id="scoreCard" style="display:none;background:#fff;border-top:1px solid #e8e8e8;padding:20px 24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div><strong style="font-size:16px">评分</strong> <span id="scoreTotal" style="font-size:20px;font-weight:700;color:#1a1a2e"></span></div>
+        <button class="secondary-btn" id="nextBtn" onclick="nextQuestion()" style="width:auto;padding:6px 20px">下一题 →</button>
+      </div>
+      <div id="scoreDims" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px"></div>
+      <div id="scoreFeedback" style="font-size:13px;color:#555;line-height:1.6"></div>
+    </div>
+
+    <!-- 面试完成/报告 -->
+    <div id="interviewComplete" style="display:none;flex:1;overflow-y:auto;padding:24px">
+      <div class="report-card" style="background:#fff;border-radius:12px;padding:24px;max-width:600px;margin:0 auto">
+        <h2 style="font-size:20px;text-align:center;margin-bottom:20px">📊 面试报告</h2>
+        <div style="text-align:center;margin-bottom:20px">
+          <span style="font-size:40px;font-weight:700;color:#1a1a2e" id="reportScore">0</span>
+          <span style="font-size:16px;color:#999">/ 10</span>
+        </div>
+        <div id="reportDims" style="margin-bottom:16px"></div>
+        <div class="report-section"><strong>✅ 优势</strong><p id="reportStrengths" style="font-size:13px;color:#555;line-height:1.6"></p></div>
+        <div class="report-section"><strong>🔧 待提升</strong><p id="reportWeaknesses" style="font-size:13px;color:#555;line-height:1.6"></p></div>
+        <div class="report-section"><strong>📖 学习建议</strong><p id="reportSuggestions" style="font-size:13px;color:#555;line-height:1.6"></p></div>
+        <div class="report-section"><strong>📝 总评</strong><p id="reportSummary" style="font-size:13px;color:#555;line-height:1.6"></p></div>
+        <!-- 每题详情（折叠） -->
+        <div id="reportQuestionsSection" style="display:none;margin-top:20px">
+          <div style="font-size:14px;font-weight:600;margin-bottom:10px;cursor:pointer;color:#1a1a2e;user-select:none" onclick="toggleReportQuestions()">
+            📋 每题详情 <span id="reportQToggle" style="font-size:12px">▸</span>
+          </div>
+          <div id="reportQuestions" style="display:none"></div>
+        </div>
+        <button class="primary-btn" onclick="startInterview()" style="margin-top:20px">🔄 再来一轮</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ⚙ 设置面板 -->
+<div class="settings-overlay" id="settingsOverlay" onclick="toggleSettings()"></div>
+<div class="settings-panel" id="settingsPanel">
+  <div class="settings-header">
+    <strong>⚙ 设置</strong>
+    <span class="settings-close" onclick="toggleSettings()">✕</span>
+  </div>
+
+  <div class="settings-body">
+    <div class="setting-row">
+      <label>检索数量 (Top-K)：<span id="topKVal">5</span></label>
+      <input type="range" id="topKSlider" min="1" max="20" value="5" oninput="updateTopK(this.value)">
+    </div>
+
+    <div class="setting-row">
+      <label>回答温度 (Temperature)：<span id="tempVal">0.6</span></label>
+      <input type="range" id="tempSlider" min="0" max="1" step="0.1" value="0.6" oninput="updateTemp(this.value)">
+    </div>
+
+    <button class="danger-btn" onclick="clearAllDocs()">🗑 清空知识库</button>
+
+    <div class="sys-info" id="sysInfo">加载中...</div>
+  </div>
+</div>
+
+</body>
+
+<script>
+const API = '';
+let uploading = false;
+let pendingQuery = false;
+let lastQuery = '';
+let topK = 5;
+let temp = 0.6;
+let authToken = null;
+let selectedDocType = 'general';  // 上传时选中的文档类型
+
+// 文档类型标签颜色
+const TYPE_LABELS = { 'resume': '📋简历', 'jd': '📌JD', 'general': '📄通用' };
+const TYPE_COLORS = { 'resume': '#0f3460;#64ffda', 'jd': '#3a1a2e;#ffd700', 'general': '#16213e;#8892b0' };
+
+// ========== 认证初始化 ==========
+async function initAuth() {
+  // Token 不在 HTML 源码中，运行时从 /auth/session 获取
+  try {
+    const resp = await fetch(API + '/auth/session', { method: 'POST' });
+    if (resp.ok) {
+      const data = await resp.json();
+      authToken = data.token;
+      // 过期前自动刷新
+      setTimeout(initAuth, (data.expires_in || 3600) * 900);  // 90% 生命周期时刷新
+    }
+  } catch(e) { /* 开发模式或无需认证时忽略 */ }
+}
+
+// getHeaders — 始终带 Bearer token（运行时获取，不在 HTML 源码中）
+function getHeaders() {
+  return authToken ? { 'Authorization': 'Bearer ' + authToken } : {};
+}
+
+// ========== Toast ==========
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ========== 文档类型选择 ==========
+function selectDocType(btn) {
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedDocType = btn.dataset.type;
+}
+
+// ========== 上传文档 ==========
+async function uploadFile(input) {
+  const file = input.files[0];
+  if (!file || uploading) return;
+  uploading = true;
+  if (!file.name.endsWith('.txt') && !file.name.endsWith('.md') && !file.name.endsWith('.pdf') && !file.name.endsWith('.docx')) {
+    showToast('仅支持 .txt、.md、.pdf 和 .docx 文件'); return;
+  }
+  const area = document.getElementById('uploadArea');
+  area.classList.add('uploading');
+  area.querySelector('.text').textContent = '上传中...';
+
+  const form = new FormData();
+  form.append('file', file);
+  form.append('doc_type', selectedDocType);
+
+  try {
+    const resp = await fetch(API + '/upload', { method: 'POST', body: form, headers: getHeaders() });
+    const data = await resp.json();
+    if (resp.ok) {
+      showToast('✅ ' + data.message);
+      loadDocuments();
+    } else {
+      showToast('❌ ' + (data.detail || '上传失败'));
+    }
+  } catch(e) {
+    showToast('❌ 网络错误');
+  }
+  area.classList.remove('uploading');
+  area.querySelector('.text').textContent = '点击上传文档';
+  uploading = false;
+  input.value = '';
+}
+
+// 文档类型标签 HTML 辅助
+function docTypeTag(d) {
+  const t = d.doc_type || 'general';
+  return '<span class="doc-type-tag" style="background:' + TYPE_COLORS[t].split(';')[0] + ';color:' + TYPE_COLORS[t].split(';')[1] + '">' + (TYPE_LABELS[t] || '📄') + '</span>';
+}
+
+// ========== 文档列表 ==========
+async function loadDocuments() {
+  try {
+    const resp = await fetch(API + '/documents', { headers: getHeaders() });
+    if (!resp.ok) { throw new Error('HTTP ' + resp.status); }
+    const docs = await resp.json();
+    const el = document.getElementById('docList');
+    if (!docs.length) { el.innerHTML = '<div style="font-size:12px;color:#5a5a7a;text-align:center;padding:20px 0">暂无文档</div>'; return; }
+    el.innerHTML = docs.map(d =>
+      `<div class="doc-item">
+        <span class="name">📄 ${d.filename}${docTypeTag(d)}</span>
+        <span class="badge">${d.chunk_count}段</span>
+        <button class="del" onclick="deleteDoc(${d.id})">✕</button>
+      </div>`
+    ).join('');
+  } catch(e) { /* ignore */ }
+}
+
+// ========== 删除文档 ==========
+async function deleteDoc(id) {
+  try {
+    const resp = await fetch(API + '/documents/' + id, { method: 'DELETE', headers: getHeaders() });
+    if (resp.ok) { showToast('已删除'); loadDocuments(); }
+    else showToast('❌ 删除失败');
+  } catch(e) { showToast('❌ 网络错误'); }
+}
+
+// ========== 发送提问（流式 SSE） ==========
+async function sendQuery() {
+  const input = document.getElementById('queryInput');
+  const query = input.value.trim();
+  if (!query || uploading || pendingQuery) return;
+
+  // 相同问题防重复
+  if (query === lastQuery) {
+    showToast('这个问题刚刚问过');
+    return;
+  }
+
+  input.value = '';
+  pendingQuery = true;
+  document.getElementById('sendBtn').disabled = true;
+  hideEmptyState();
+
+  // 显示用户消息
+  addMessage(query, 'user');
+
+  // 创建空消息容器，流式填充
+  const stream = createStreamingMessage();
+
+  try {
+    const resp = await fetch(API + '/ask', {
+      method: 'POST',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, top_k: topK, temperature: temp })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      stream.append('❌ ' + (err.detail || '请求失败'));
+      stream.finish();
+      return;
+    }
+
+    // 读取 SSE 流
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const event = JSON.parse(line.slice(6));
+          if (event.type === 'token') {
+            stream.append(event.content);
+          } else if (event.type === 'sources') {
+            stream.finish(event.sources);
+          } else if (event.type === 'error') {
+            stream.append('\n❌ ' + event.message);
+            stream.finish();
+          } else if (event.type === 'done') {
+            stream.finish();
+          }
+        } catch(e) { /* 忽略解析错误 */ }
+      }
+    }
+  } catch(e) {
+    stream.append('\n❌ 网络错误：' + (e.message || '请检查服务是否启动'));
+    stream.finish();
+  }
+  pendingQuery = false;
+  lastQuery = query;
+  document.getElementById('sendBtn').disabled = false;
+}
+
+// ========== 消息渲染 ==========
+function addMessage(text, role) {
+  const el = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.textContent = text;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ========== 流式消息（SSE 渐进渲染） ==========
+function createStreamingMessage() {
+  const el = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg bot';
+  el.appendChild(div);
+
+  let content = '';
+
+  return {
+    div: div,
+    append: function(text) {
+      content += text;
+      let safe = escapeHtml(content)
+        .replace(/\n/g, '<br>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      div.innerHTML = safe;
+      el.scrollTop = el.scrollHeight;
+    },
+    finish: function(sources) {
+      if (sources && sources.length) {
+        let sHtml = '<div class="sources"><div class="label">📎 参考来源：</div>';
+        const seen = new Set();
+        sources.forEach(s => {
+          if (!seen.has(s.document)) {
+            seen.add(s.document);
+            sHtml += '<div class="source-item">' + s.document + '</div>';
+          }
+        });
+        sHtml += '</div>';
+        div.innerHTML += sHtml;
+      }
+      el.scrollTop = el.scrollHeight;
+    }
+  };
+}
+
+let typingIndex = 0;
+
+function showTyping() {
+  const el = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg bot typing';
+  div.id = 'typing-' + (++typingIndex);
+  div.innerHTML = '<span></span><span></span><span></span>';
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+  return typingIndex;
+}
+
+function removeTyping(id) {
+  const el = document.getElementById('typing-' + id);
+  if (el) el.remove();
+}
+
+function hideEmptyState() {
+  const es = document.getElementById('emptyState');
+  if (es) es.style.display = 'none';
+}
+
+// ========== 初始化 ==========
+async function init() {
+  await initAuth();
+  loadDocuments();
+  loadSettings();
+}
+init();
+
+// ========== 设置面板 ==========
+function toggleSettings() {
+  const ov = document.getElementById('settingsOverlay');
+  const pn = document.getElementById('settingsPanel');
+  const show = !pn.classList.contains('show');
+  ov.classList.toggle('show', show);
+  pn.classList.toggle('show', show);
+}
+
+function updateTopK(v) {
+  topK = parseInt(v);
+  document.getElementById('topKVal').textContent = v;
+}
+
+function updateTemp(v) {
+  temp = parseFloat(v);
+  document.getElementById('tempVal').textContent = v;
+}
+
+async function clearAllDocs() {
+  if (!confirm('确定清空全部文档和知识库？此操作不可恢复。')) return;
+  try {
+    const resp = await fetch(API + '/documents', { method: 'DELETE', headers: getHeaders() });
+    if (resp.ok) { showToast('✅ 知识库已清空'); loadDocuments(); }
+    else showToast('❌ 清空失败');
+  } catch(e) { showToast('❌ 网络错误'); }
+}
+
+async function loadSettings() {
+  try {
+    const resp = await fetch(API + '/settings', { headers: getHeaders() });
+    if (!resp.ok) { throw new Error('HTTP ' + resp.status); }
+    const data = await resp.json();
+    document.getElementById('sysInfo').innerHTML =
+      '<b>Embedding:</b> ' + data.embedding_model.split('/').pop() + '<br>' +
+      '<b>LLM:</b> ' + data.llm_model + '<br>' +
+      '<b>切块:</b> Child ' + data.chunk.child_size + '字 / Parent ' + data.chunk.parent_size + '字<br>' +
+      '<b>文档数:</b> ' + data.document_count;
+  } catch(e) { /* ignore */ }
+  }
+
+  // ========== 面试模式 ==========
+
+  let interviewState = {
+    sessionId: null,
+    questionId: null,
+    questionNumber: 0,
+    totalQuestions: 8,
+    answered: []
+  };
+
+  function switchMode(mode) {
+    document.getElementById('modeChat').classList.toggle('active', mode === 'chat');
+    document.getElementById('modeInterview').classList.toggle('active', mode === 'interview');
+    document.getElementById('chatPanel').style.display = mode === 'chat' ? '' : 'none';
+    document.getElementById('interviewPanel').style.display = mode === 'interview' ? '' : 'none';
+    document.getElementById('chatMode').style.display = mode === 'chat' ? '' : 'none';
+    document.getElementById('interviewMode').style.display = mode === 'interview' ? 'flex' : 'none';
+    if (mode === 'interview') {
+      document.getElementById('chatHeader').style.display = 'none';
+      loadInterviewDocs();
+    } else {
+      document.getElementById('chatHeader').style.display = '';
+    }
+  }
+
+  function loadInterviewDocs() {
+    fetch(API + '/documents', { headers: getHeaders() })
+      .then(r => r.json())
+      .then(docs => {
+        function renderSelect(listId, filterType, placeholder) {
+          const el = document.getElementById(listId);
+          const filtered = docs.filter(d => d.doc_type === filterType || d.doc_type === 'general');
+          if (!filtered.length) {
+            el.innerHTML = '<div style="font-size:12px;color:#5a5a7a;padding:8px 0">暂无' + placeholder + '文档</div>';
+            return;
+          }
+          el.innerHTML = filtered.map(d =>
+            '<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:#16213e;border-radius:6px;margin-bottom:4px;font-size:13px;cursor:pointer">'
+            + '<input type="radio" name="' + listId + '" value="' + d.id + '">'
+            + '<span>' + d.filename + docTypeTag(d) + '</span></label>'
+          ).join('');
+        }
+        renderSelect('resumeSelect', 'resume', '简历');
+        renderSelect('jdSelect', 'jd', '岗位描述');
+      });
+  }
+
+  async function startInterview() {
+    const resumeRadio = document.querySelector('#resumeSelect input[type=radio]:checked');
+    if (!resumeRadio) { showToast('请先选择简历文档'); return; }
+    const jdRadio = document.querySelector('#jdSelect input[type=radio]:checked');
+    const totalQ = parseInt(document.getElementById('qCountSlider').value);
+
+    document.getElementById('startInterviewBtn').disabled = true;
+    document.getElementById('startInterviewBtn').textContent = '⏳ 面试官正在准备...';
+
+    try {
+      const resp = await fetch(API + '/interview/start', {
+        method: 'POST',
+        headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resume_doc_id: parseInt(resumeRadio.value),
+          jd_doc_id: jdRadio ? parseInt(jdRadio.value) : null,
+          total_questions: totalQ
+        })
+      });
+      if (!resp.ok) {
+        const err = await resp.json();
+        showToast('❌ ' + (err.detail || '启动失败'));
+        return;
+      }
+      const data = await resp.json();
+      // 记录简历名（用于历史记录）
+      const resumeLabel = resumeRadio.parentElement ? resumeRadio.parentElement.textContent.trim() : ('文档 #' + resumeRadio.value);
+      interviewState = {
+        sessionId: data.session_id,
+        questionId: data.question_id,
+        questionNumber: 1,
+        totalQuestions: totalQ,
+        answered: [],
+        resumeName: resumeLabel
+      };
+      if (data.avoided_count > 0) {
+        showToast('🔄 已避开 ' + data.avoided_count + ' 道历史题目');
+      }
+      showQuestion(data);
+    } catch(e) {
+      showToast('❌ 网络错误');
+    } finally {
+      document.getElementById('startInterviewBtn').disabled = false;
+      document.getElementById('startInterviewBtn').textContent = '🎬 开始面试';
+    }
+  }
+
+  function showQuestion(data) {
+    // 显示面试进行中，隐藏完成状态
+    document.getElementById('interviewProgress').style.display = 'flex';
+    document.getElementById('interviewComplete').style.display = 'none';
+    document.getElementById('scoreCard').style.display = 'none';
+
+    document.getElementById('qProgress').textContent = '第 ' + data.question_number + '/' + data.total_questions + ' 题';
+    document.getElementById('qBadge').textContent = '📌 ' + (data.question.dimension || '综合') + ' · ' + (data.question.difficulty === 'hard' ? '困难' : data.question.difficulty === 'easy' ? '简单' : '中等');
+    document.getElementById('qText').textContent = data.question.text;
+    document.getElementById('qHint').textContent = '💡 ' + (data.question.hint || '请结合你的实际项目经验回答');
+    document.getElementById('answerInput').value = '';
+    document.getElementById('submitAnswerBtn').disabled = false;
+
+    interviewState.questionId = data.question_id;
+    interviewState.questionNumber = data.question_number;
+    interviewState.totalQuestions = data.total_questions;
+  }
+
+  async function submitAnswer() {
+    const answer = document.getElementById('answerInput').value.trim();
+    if (!answer) { showToast('请先输入回答'); return; }
+
+    document.getElementById('submitAnswerBtn').disabled = true;
+    document.getElementById('submitAnswerBtn').textContent = '⏳ 评分中...';
+
+    try {
+      const resp = await fetch(API + '/interview/answer', {
+        method: 'POST',
+        headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: interviewState.sessionId,
+          question_id: interviewState.questionId,
+          answer: answer
+        })
+      });
+      if (!resp.ok) {
+        const err = await resp.json();
+        showToast('❌ ' + (err.detail || '评分失败'));
+        return;
+      }
+      const data = await resp.json();
+
+      // 显示评分卡片
+      showScoreCard(data);
+
+      if (data.is_complete) {
+        document.getElementById('nextBtn').textContent = '📊 查看报告';
+        document.getElementById('nextBtn').onclick = function() { loadReport(interviewState.sessionId); };
+      } else {
+        document.getElementById('nextBtn').textContent = '下一题 →';
+        document.getElementById('nextBtn').onclick = nextQuestion;
+      }
+    } catch(e) {
+      showToast('❌ 网络错误');
+    } finally {
+      document.getElementById('submitAnswerBtn').disabled = false;
+      document.getElementById('submitAnswerBtn').textContent = '📨 提交回答';
+    }
+  }
+
+  function showScoreCard(data) {
+    document.getElementById('scoreCard').style.display = 'block';
+    const score = data.score;
+    document.getElementById('scoreTotal').textContent = (score.total_score || 0).toFixed(1) + '/10';
+
+    // 维度分数
+    const dims = score.dimensions || {};
+    let dimHtml = '';
+    for (const [k, v] of Object.entries(dims)) {
+      const color = v >= 7 ? '#64ffda' : v >= 4 ? '#ffd700' : '#ff6b6b';
+      dimHtml += '<div style="background:#f5f5f5;border-radius:6px;padding:6px 10px;font-size:12px;min-width:80px;text-align:center">'
+        + '<div style="color:#666;margin-bottom:2px">' + k + '</div>'
+        + '<div style="font-size:18px;font-weight:700;color:' + color + '">' + v + '</div></div>';
+    }
+    document.getElementById('scoreDims').innerHTML = dimHtml;
+    document.getElementById('scoreFeedback').innerHTML = '<strong>反馈：</strong>' + (score.feedback || '');
+
+    // 保存下一题数据
+    if (data.question) {
+      interviewState.nextQuestion = data.question;
+      interviewState.nextQuestionId = data.question_id;
+    }
+  }
+
+  function nextQuestion() {
+    if (!interviewState.nextQuestion) return;
+    document.getElementById('scoreCard').style.display = 'none';
+    showQuestion({
+      question_number: interviewState.questionNumber + 1,
+      total_questions: interviewState.totalQuestions,
+      question_id: interviewState.nextQuestionId,
+      question: interviewState.nextQuestion
+    });
+    // 确保从完整数据更新
+  }
+
+  function escHtml(s) { if (!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function toggleReportQuestions() {
+    const el = document.getElementById('reportQuestions');
+    const toggle = document.getElementById('reportQToggle');
+    if (!el) return;
+    const isHidden = el.style.display === 'none';
+    el.style.display = isHidden ? 'block' : 'none';
+    toggle.textContent = isHidden ? '▾' : '▸';
+  }
+
+  async function loadReport(sessionId) {
+    try {
+      const resp = await fetch(API + '/interview/' + sessionId + '/report', { headers: getHeaders() });
+      if (!resp.ok) { showToast('❌ 无法生成报告'); return; }
+      const data = await resp.json();
+
+      document.getElementById('interviewProgress').style.display = 'none';
+      document.getElementById('scoreCard').style.display = 'none';
+      document.getElementById('interviewComplete').style.display = 'block';
+
+      document.getElementById('reportScore').textContent = (data.overall_score || 0).toFixed(1);
+
+      // 维度雷达
+      const dims = data.dimension_scores || {};
+      let dimHtml = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">';
+      for (const [k, v] of Object.entries(dims)) {
+        const color = v >= 7 ? '#2e7d32' : v >= 5 ? '#f57f17' : '#c62828';
+        dimHtml += '<span style="background:#f5f5f5;border-radius:6px;padding:4px 10px;font-size:13px">'
+          + k + ' <strong style="color:' + color + '">' + v + '</strong>/10</span>';
+      }
+      dimHtml += '</div>';
+
+      // 难度分布
+      const dd = data.difficulty_distribution || {};
+      if (Object.keys(dd).length > 0) {
+        let ddHtml = '<div class="report-section"><strong>📊 难度分布</strong><div style="font-size:13px;color:#555;margin-top:6px">';
+        if (dd.easy) ddHtml += '<span style="margin-right:12px">简单：' + dd.easy + ' 题</span>';
+        if (dd.medium) ddHtml += '<span style="margin-right:12px">中等：' + dd.medium + ' 题</span>';
+        if (dd.hard) ddHtml += '<span>困难：' + dd.hard + ' 题</span>';
+        ddHtml += '</div></div>';
+        document.getElementById('reportDims').insertAdjacentHTML('afterend', ddHtml);
+      }
+
+      // 关键词命中分析
+      const ka = data.keyword_analysis || {};
+      if (ka.hit_rate != null) {
+        let kwHtml = '<div class="report-section"><strong>🎯 关键词命中</strong>';
+        kwHtml += '<div style="font-size:13px;color:#555;margin-top:6px">命中率：<span style="font-weight:600">' + Math.round(ka.hit_rate * 100) + '%</span></div>';
+        if (ka.strong_keywords && ka.strong_keywords.length) {
+          kwHtml += '<div style="font-size:13px;color:#2e7d32;margin-top:4px">✅ 已覆盖：' + ka.strong_keywords.join('、') + '</div>';
+        }
+        if (ka.missed_keywords && ka.missed_keywords.length) {
+          kwHtml += '<div style="font-size:13px;color:#c62828;margin-top:4px">❌ 遗漏：' + ka.missed_keywords.join('、') + '</div>';
+        }
+        kwHtml += '</div>';
+        document.getElementById('reportDims').insertAdjacentHTML('afterend', kwHtml);
+      }
+
+      // 每题明细
+      const questions = data.questions || [];
+      if (questions.length > 0) {
+        document.getElementById('reportQuestionsSection').style.display = 'block';
+        let qHtml = '';
+        for (const q of questions) {
+          const bgColor = (q.score || 0) >= 7 ? '#e8f5e9' : (q.score || 0) >= 5 ? '#fff8e1' : '#ffebee';
+          const diffLabel = q.difficulty === 'hard' ? '困难' : q.difficulty === 'easy' ? '简单' : '中等';
+          qHtml += '<div style="background:' + bgColor + ';border-radius:8px;padding:12px;margin-bottom:10px;font-size:13px;text-align:left">'
+            + '<div style="font-weight:600;margin-bottom:6px;color:#1a1a2e">第' + q.number + '题 · ' + (q.dimension || '综合') + ' · ' + diffLabel + '</div>'
+            + '<div style="color:#333;margin-bottom:4px"><strong>问题：</strong>' + escHtml(q.question) + '</div>'
+            + '<div style="color:#555;margin-bottom:4px"><strong>回答：</strong>' + escHtml(q.answer) + '</div>'
+            + '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">'
+            + '<span style="font-weight:600;color:' + ((q.score || 0) >= 7 ? '#2e7d32' : (q.score || 0) >= 5 ? '#f57f17' : '#c62828') + '">得分：' + (q.score != null ? q.score + '/10' : '未评分') + '</span>'
+            + (q.expected_keywords && q.expected_keywords.length ? '<span style="color:#555;font-size:12px">期望关键词：' + q.expected_keywords.join('、') + '</span>' : '')
+            + '</div>'
+            + (q.feedback ? '<div style="color:#555;margin-top:4px;border-top:1px dashed #ddd;padding-top:4px"><strong>反馈：</strong>' + escHtml(q.feedback) + '</div>' : '')
+            + '</div>';
+        }
+        document.getElementById('reportQuestions').innerHTML = qHtml;
+      }
+
+      document.getElementById('reportStrengths').textContent = data.strengths || '';
+      document.getElementById('reportWeaknesses').textContent = data.weaknesses || '';
+      document.getElementById('reportSuggestions').innerHTML = Array.isArray(data.learning_suggestions) ? data.learning_suggestions.map(function(s) { return '• ' + escHtml(s); }).join('<br>') : (data.learning_suggestions || '');
+      document.getElementById('reportSummary').textContent = data.summary || '';
+
+      // 保存到本地历史记录
+      saveHistory(data, interviewState);
+    } catch(e) {
+      showToast('❌ 网络错误');
+    }
+  }
+
+  // 重写初始化：加上面试文档加载
+  const origLoad = loadDocuments;
+  loadDocuments = function() {
+    if (origLoad) origLoad();
+    // 如果面试面板可见，刷新文档列表
+    if (document.getElementById('interviewPanel').style.display !== 'none') {
+      loadInterviewDocs();
+    }
+  };
+
+  // ═══════════════════ 本地历史记录 ═══════════════════
+
+  function saveHistory(report, state) {
+    if (!state || !state.sessionId) return;
+    const key = 'ie_history';
+    let list = [];
+    try { list = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) {}
+    // 去重（同一 session 覆盖）
+    list = list.filter(function(h) { return h.id !== state.sessionId; });
+    list.unshift({
+      id: state.sessionId,
+      date: new Date().toLocaleString('zh-CN'),
+      resume: state.resumeName || '未知简历',
+      totalQ: state.totalQuestions || 0,
+      score: report.overall_score || 0,
+      dims: report.dimension_scores || {},
+    });
+    // 最多保留 20 条
+    if (list.length > 20) list = list.slice(0, 20);
+    localStorage.setItem(key, JSON.stringify(list));
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const el = document.getElementById('interviewHistory');
+    const clearBtn = document.getElementById('clearHistoryBtn');
+    if (!el) return;
+    let list = [];
+    try { list = JSON.parse(localStorage.getItem('ie_history') || '[]'); } catch(e) {}
+    if (list.length === 0) {
+      el.innerHTML = '<div style="font-size:12px;color:#5a5a7a;text-align:center;padding:8px">暂无记录</div>';
+      if (clearBtn) clearBtn.style.display = 'none';
+      return;
+    }
+    if (clearBtn) clearBtn.style.display = 'block';
+    let html = '';
+    for (const h of list) {
+      const color = h.score >= 7 ? '#2e7d32' : h.score >= 5 ? '#f57f17' : '#c62828';
+      html += '<div class="doc-item" style="cursor:pointer;font-size:12px" onclick="viewHistory(' + h.id + ')">'
+        + '<div style="flex:1;overflow:hidden">'
+        + '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(h.resume) + '</div>'
+        + '<div style="font-size:10px;color:#5a5a7a;margin-top:2px">' + escHtml(h.date) + '</div></div>'
+        + '<span style="font-weight:600;color:' + color + ';font-size:13px">' + h.score.toFixed(1) + '</span></div>';
+    }
+    el.innerHTML = html;
+  }
+
+  function clearHistory() {
+    if (!confirm('确定清除所有面试记录？')) return;
+    localStorage.removeItem('ie_history');
+    renderHistory();
+    showToast('🗑 历史记录已清除');
+  }
+
+  function viewHistory(sessionId) {
+    // 切换到面试模式并加载该 session 的报告
+    switchMode('interview');
+    // 后端取报告需要 session token
+    if (!authToken) {
+      fetch(API + '/auth/session', { method: 'POST' }).then(function(r) { return r.json(); }).then(function(d) {
+        authToken = d.token;
+        doViewHistory(sessionId);
+      });
+    } else {
+      doViewHistory(sessionId);
+    }
+  }
+
+  function doViewHistory(sessionId) {
+    // 隐藏面试过程中的界面，直接显示报告
+    document.getElementById('interviewProgress').style.display = 'none';
+    document.getElementById('scoreCard').style.display = 'none';
+    document.getElementById('interviewComplete').style.display = 'block';
+    // 构造一个假的 state 去装载报告
+    interviewState = { sessionId: sessionId, questionNumber: 0, totalQuestions: 0, answered: [], resumeName: '' };
+    loadReport(sessionId);
+  }
+
+  // 页面加载时渲染历史
+  setTimeout(renderHistory, 500);
+
+  </script>
+</html>

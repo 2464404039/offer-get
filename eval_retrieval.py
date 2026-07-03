@@ -2,7 +2,7 @@
 RAG 全链路评测 — faithfulness + context_recall
 
 使用方式：
-  cd rag-api
+  cd interview-engine
   PYTHONPATH="" uv run python eval_retrieval.py
 
 原理：

@@ -18,7 +18,7 @@ EMBEDDING_MODEL = 'BAAI/bge-small-zh-v1.5'  # 中文优化，512维，约95MB
 CHROMA_PERSIST_DIR = './chroma_db'
 
 # ========== SQLite 路径 ==========
-SQLITE_PATH = os.getenv('SQLITE_PATH', './rag_api.db')
+SQLITE_PATH = os.getenv('SQLITE_PATH', './interview_engine.db')
 
 # ========== LLM 配置（兼容 OpenAI API 格式） ==========
 # 国内可以用 DeepSeek / Moonshot / 智谱等，它们都兼容 OpenAI 的 API 格式
@@ -29,7 +29,7 @@ LLM_MODEL = os.getenv('LLM_MODEL', 'gpt-3.5-turbo')
 # ========== 服务端口 ==========
 # 用不常见的端口避免和 Hermes 冲突（Hermes 内部可能占用 8000）
 PORT = int(os.getenv('PORT', '8765'))
-HOST = os.getenv('HOST', '127.0.0.1')  # 默认仅本地访问，改为 0.0.0.0 暴露到网络
+HOST = os.getenv('HOST', '0.0.0.0')  # 默认监听所有网络接口（隧道连接需要）
 
 # ========== 安全配置 ==========
 APP_SECRET_KEY = os.getenv('APP_SECRET_KEY', '')  # 空=不开启鉴权（本地开发）
@@ -44,3 +44,10 @@ CHILD_OVERLAP = 50         # 子chunk重叠
 PARENT_CHUNK_SIZE = 2000   # 父chunk大小——给LLM看，上下文完整
 PARENT_OVERLAP = 200       # 父chunk重叠
 TOP_K = 10                 # 检索返回的子chunk数（越多覆盖越广）
+
+# ========== 混合检索权重（BM25 关键词 × 向量语义） ==========
+BM25_WEIGHT = 0.3     # BM25 权重（0.3 = 30%）
+VECTOR_WEIGHT = 0.7   # 向量权重（0.7 = 70%）
+
+# ========== 面试 Agent 参数 ==========
+INTERVIEW_DEFAULT_QUESTIONS = 8     # 默认面试题数
