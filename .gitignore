@@ -17,3 +17,7 @@ rag_api.db-wal
 dist/
 build/
 *.egg-info/
+
+# Docker
+data/
+deploy.tar.gz

@@ -1,0 +1,13 @@
+.env
+.git
+.gitignore
+__pycache__/
+*.pyc
+chroma_db/
+bm25_index.json
+interview_engine.db*
+.venv/
+cloudflared.exe
+README.md
+Dockerfile
+.dockerignore

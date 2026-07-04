@@ -33,6 +33,74 @@ python -m venv .venv
 
 > 首次启动会自动下载 embedding 模型（~95MB），请保持网络通畅。国内用户会自动使用镜像下载。
 
+## 🐳 Docker 部署
+
+### 前置条件
+- 已安装 Docker 和 Docker Compose
+- 拥有一个 OpenAI 兼容的 API Key（如 DeepSeek / Moonshot / 智谱）
+
+### 国内用户加速
+
+如果服务器位于中国，建议先配置 Docker 镜像加速：
+
+```bash
+# /etc/docker/daemon.json
+{
+  "registry-mirrors": [
+    "https://docker.m.daocloud.io",
+    "https://dockerpull.cn"
+  ]
+}
+```
+
+然后重启 Docker：`systemctl restart docker`
+
+### 一键部署
+
+```bash
+# 1. 克隆
+git clone https://github.com/your-username/interview-engine.git
+cd interview-engine
+
+# 2. 配置 API Key
+cp .env.example .env
+# 编辑 .env，填入你的 LLM_API_KEY 和 LLM_API_BASE
+
+# 3. 启动
+mkdir -p data/chroma_db data/sqlite data/hf_cache
+docker compose up -d
+
+# 4. 查看启动日志
+docker compose logs -f --tail=30
+```
+
+启动后浏览器打开 `http://服务器IP:8765` 即可使用。
+
+### 数据持久化
+
+| 目录 | 用途 | 说明 |
+|---|---|---|
+| `data/chroma_db/` | ChromaDB 向量库 | 文档向量索引 |
+| `data/sqlite/` | SQLite 数据库 | 面试记录 |
+| `data/hf_cache/` | Embedding 模型缓存 | ~95MB，避免重复下载 |
+
+### 常用命令
+
+```bash
+# 停止服务
+docker compose down
+
+# 重启服务
+docker compose restart
+
+# 查看实时日志
+docker compose logs -f
+
+# 更新镜像（拉取新代码后）
+docker compose build
+docker compose up -d
+```
+
 ## 工作流程
 
 ### RAG 问答流程
