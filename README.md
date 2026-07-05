@@ -52,20 +52,7 @@ docker compose up -d
 | BM25 索引 | `data/bm25_index.json` |
 | 模型缓存 | `data/hf_cache/` |
 
-### Nginx 反代（推荐）
 
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-    client_max_body_size 50m;
-    location / {
-        proxy_pass http://127.0.0.1:8765;
-        proxy_buffering off;  # SSE 流式输出必须关闭
-        proxy_set_header Host $host;
-    }
-}
-```
 
 ## 创建管理员
 
