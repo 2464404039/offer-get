@@ -18,6 +18,8 @@ dist/
 build/
 *.egg-info/
 
-# Docker
+# Docker / 运行时数据
 data/
 deploy.tar.gz
+*.db-shm
+*.db-wal

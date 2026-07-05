@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔧 管理控制台 — 求职助手</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, 'Segoe UI', sans-serif; background: #f0f2f5; min-height: 100vh; }
+    .header { background: #1a1a2e; color: #fff; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .header h1 { font-size: 18px; }
+    .header button { padding: 6px 16px; border: 1px solid #64ffda; background: transparent; color: #64ffda; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .header button:hover { background: rgba(100,255,218,.1); }
+    .container { max-width: 1000px; margin: 0 auto; padding: 24px; }
+    .stats { display: flex; gap: 16px; margin-bottom: 24px; }
+    .stat-card { flex: 1; background: #fff; border-radius: 10px; padding: 20px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .stat-card .num { font-size: 32px; font-weight: 700; color: #1a1a2e; }
+    .stat-card .label { font-size: 13px; color: #999; margin-top: 4px; }
+    .section { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .section h2 { font-size: 16px; margin-bottom: 16px; color: #1a1a2e; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 8px 12px; border-bottom: 2px solid #eee; color: #666; font-weight: 600; }
+    td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .badge-active { background: #e8f5e9; color: #2e7d32; }
+    .badge-disabled { background: #ffebee; color: #c62828; }
+    .badge-admin { background: #e3f2fd; color: #1565c0; }
+    .btn-sm { padding: 4px 12px; border: 1px solid #ddd; background: #fff; border-radius: 4px; cursor: pointer; font-size: 12px; transition: .2s; }
+    .btn-sm:hover { border-color: #1a1a2e; }
+    .btn-sm.danger { border-color: #e74c3c; color: #e74c3c; }
+    .btn-sm.danger:hover { background: #e74c3c; color: #fff; }
+    .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 24px; border-radius: 8px; font-size: 13px; opacity: 0; transition: .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+    #loginPage { display: flex; justify-content: center; align-items: center; min-height: 80vh; }
+    #loginPage .card { background: #fff; border-radius: 12px; padding: 32px; width: 340px; box-shadow: 0 4px 24px rgba(0,0,0,.1); text-align: center; }
+    #loginPage input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 10px; outline: none; }
+    #loginPage button { width: 100%; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; background: #1a1a2e; color: #fff; }
+    #mainPage { display: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🔧 求职助手 — 管理控制台</h1>
+  <button onclick="doLogout()">退出登录</button>
+</div>
+
+<div id="loginPage">
+  <div class="card">
+    <h2 style="margin-bottom:16px">🔐 管理员登录</h2>
+    <input type="text" id="loginUser" placeholder="用户名" onkeydown="if(event.key==='Enter')doLogin()">
+    <input type="password" id="loginPass" placeholder="密码" onkeydown="if(event.key==='Enter')doLogin()">
+    <div id="loginError" style="color:#e74c3c;font-size:12px;margin-bottom:8px;display:none"></div>
+    <button onclick="doLogin()">登录</button>
+  </div>
+</div>
+
+<div id="mainPage">
+  <div class="container">
+    <div class="stats">
+      <div class="stat-card"><div class="num" id="statUsers">-</div><div class="label">注册用户</div></div>
+      <div class="stat-card"><div class="num" id="statDocs">-</div><div class="label">文档总数</div></div>
+      <div class="stat-card"><div class="num" id="statInterviews">-</div><div class="label">面试记录</div></div>
+    </div>
+
+    <div class="section">
+      <h2>👥 用户管理</h2>
+      <table><thead><tr><th>ID</th><th>用户名</th><th>角色</th><th>状态</th><th>注册时间</th><th>操作</th></tr></thead>
+      <tbody id="userTable"></tbody></table>
+    </div>
+
+    <div class="section">
+      <h2>📋 面试记录</h2>
+      <table><thead><tr><th>ID</th><th>用户</th><th>状态</th><th>进度</th><th>得分</th><th>时间</th></tr></thead>
+      <tbody id="interviewTable"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+let adminToken = null;
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+function getHeaders() {
+  return adminToken ? { 'Authorization': 'Bearer ' + adminToken } : {};
+}
+
+// ========== 登录 ==========
+async function doLogin() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginError');
+  if (!u || !p) { err.textContent = '请输入用户名和密码'; err.style.display = 'block'; return; }
+
+  try {
+    const resp = await fetch(API + '/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: u, password: p })
+    });
+    const data = await resp.json();
+    if (!resp.ok) { err.textContent = data.detail || '登录失败'; err.style.display = 'block'; return; }
+    if (!data.user.is_admin) { err.textContent = '需要管理员账号'; err.style.display = 'block'; return; }
+
+    adminToken = data.token;
+    localStorage.setItem('ie_admin_token', adminToken);
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('mainPage').style.display = 'block';
+    loadAll();
+  } catch(e) { err.textContent = '网络错误'; err.style.display = 'block'; }
+}
+
+function doLogout() {
+  adminToken = null;
+  localStorage.removeItem('ie_admin_token');
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('mainPage').style.display = 'none';
+}
+
+// ========== 数据加载 ==========
+async function loadStats() {
+  try {
+    const resp = await fetch(API + '/admin/stats', { headers: getHeaders() });
+    if (!resp.ok) throw new Error('401');
+    const data = await resp.json();
+    document.getElementById('statUsers').textContent = data.users;
+    document.getElementById('statDocs').textContent = data.documents;
+    document.getElementById('statInterviews').textContent = data.interviews;
+  } catch(e) {}
+}
+
+async function loadUsers() {
+  try {
+    const resp = await fetch(API + '/admin/users', { headers: getHeaders() });
+    const users = await resp.json();
+    const el = document.getElementById('userTable');
+    el.innerHTML = users.map(function(u) {
+      const roleBadge = u.is_admin ? '<span class="badge badge-admin">管理员</span>' : '<span class="badge" style="background:#f5f5f5;color:#666">用户</span>';
+      const statusBadge = u.is_active
+        ? '<span class="badge badge-active">正常</span>'
+        : '<span class="badge badge-disabled">已禁用</span>';
+      return '<tr>'
+        + '<td>' + u.id + '</td>'
+        + '<td>' + escHtml(u.username) + ' ' + roleBadge + '</td>'
+        + '<td>' + (u.is_admin ? '管理员' : '用户') + '</td>'
+        + '<td>' + statusBadge + '</td>'
+        + '<td>' + (u.created_at || '') + '</td>'
+        + '<td><button class="btn-sm danger" onclick="toggleUser(' + u.id + ')">' + (u.is_active ? '禁用' : '启用') + '</button></td>'
+        + '</tr>';
+    }).join('');
+  } catch(e) {}
+}
+
+async function toggleUser(id) {
+  try {
+    const resp = await fetch(API + '/admin/users/' + id + '/toggle-active', {
+      method: 'PUT', headers: getHeaders()
+    });
+    if (resp.ok) { showToast('✅ 操作成功'); loadUsers(); }
+    else showToast('❌ 操作失败');
+  } catch(e) { showToast('❌ 网络错误'); }
+}
+
+async function loadInterviews() {
+  try {
+    const resp = await fetch(API + '/admin/interviews', { headers: getHeaders() });
+    const interviews = await resp.json();
+    const el = document.getElementById('interviewTable');
+    if (!interviews.length) {
+      el.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;padding:20px">暂无面试记录</td></tr>';
+      return;
+    }
+    el.innerHTML = interviews.map(function(i) {
+      const statusLabel = i.status === 'completed' ? '✅ 已完成' : i.status === 'in_progress' ? '🔄 进行中' : i.status;
+      const scoreColor = (i.score || 0) >= 7 ? '#2e7d32' : (i.score || 0) >= 5 ? '#f57f17' : '#c62828';
+      return '<tr>'
+        + '<td>' + i.id + '</td>'
+        + '<td>' + escHtml(i.username || '未登录') + '</td>'
+        + '<td>' + statusLabel + '</td>'
+        + '<td>' + (i.current_question || 0) + '/' + (i.total_questions || 0) + '</td>'
+        + '<td><strong style="color:' + scoreColor + '">' + (i.score || 0).toFixed(1) + '</strong></td>'
+        + '<td>' + (i.created_at || '') + '</td>'
+        + '</tr>';
+    }).join('');
+  } catch(e) {}
+}
+
+function loadAll() {
+  loadStats();
+  loadUsers();
+  loadInterviews();
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ========== 初始化 ==========
+(function init() {
+  const saved = localStorage.getItem('ie_admin_token');
+  if (saved) {
+    adminToken = saved;
+    // 验证 token 是否有效
+    fetch(API + '/auth/me', { headers: getHeaders() })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.is_admin) {
+          document.getElementById('loginPage').style.display = 'none';
+          document.getElementById('mainPage').style.display = 'block';
+          loadAll();
+        } else {
+          localStorage.removeItem('ie_admin_token');
+          adminToken = null;
+        }
+      })
+      .catch(function() {
+        localStorage.removeItem('ie_admin_token');
+        adminToken = null;
+      });
+  }
+})();
+</script>
+</body>
+</html>

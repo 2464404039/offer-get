@@ -1,4 +1,4 @@
-"""
+﻿"""
 手写 ReAct Agent — 求职面试官
 
 架构：
@@ -57,10 +57,13 @@ def _profile_prompt() -> str:
 
 def _question_prompt(resume_content: str, jd_content: str,
                      dimension: str, difficulty: str, history: str,
-                     avoid_questions: list | None = None) -> str:
+                     avoid_questions: list | None = None,
+                     kb_context: str = "") -> str:
     ctx = f"简历内容：\n{resume_content[:2000]}\n"
     if jd_content:
         ctx += f"\n岗位要求：\n{jd_content[:1000]}\n"
+    if kb_context:
+        ctx += '\n📚 备战资料参考（来自用户的知识库，请自然融入出题思路，不要显式提及"知识库"或"备战资料"）：\n' + kb_context + '\n'
     prompt = (
         f"你是一个技术面试官。根据以下候选人信息和面试进度出题。\n\n"
         f"{ctx}\n"
@@ -170,11 +173,12 @@ class InterviewAgent:
 
     def _exec_question(self, dimension: str, difficulty: str,
                        history: str, resume: str, jd: str,
-                       avoid_questions: list | None = None) -> dict:
+                       avoid_questions: list | None = None,
+                       kb_context: str = "") -> dict:
         resp = self.llm.chat.completions.create(
             model=LLM_MODEL,
             messages=[{"role": "system", "content": "你是一个技术面试官，直接输出 JSON。"},
-                      {"role": "user", "content": _question_prompt(resume, jd, dimension, difficulty, history, avoid_questions)}],
+                      {"role": "user", "content": _question_prompt(resume, jd, dimension, difficulty, history, avoid_questions, kb_context)}],
             temperature=0.3, max_tokens=4096,
         )
         return _parse_llm_json(resp.choices[0].message.content)
@@ -201,7 +205,8 @@ class InterviewAgent:
     # ────────────────────── 对外接口（确定性顺序，无 ReAct 循环） ──────────────────────
 
     def start_interview(self, resume_content: str, jd_content: str = "",
-                        total_questions: int = 8, avoid_questions: list | None = None) -> dict:
+                        total_questions: int = 8, avoid_questions: list | None = None,
+                        kb_context: str = "") -> dict:
         """开始面试：顺序调 analyze_profile → generate_question，共 2 次 LLM 调用"""
         logger.info("Agent 开始面试分析...")
 
@@ -210,6 +215,7 @@ class InterviewAgent:
             "技术深度", "medium", "[]",
             resume_content, jd_content,
             avoid_questions,
+            kb_context=kb_context,
         )
 
         logger.info("Profile: skills=%s", profile.get("skills", [])[:3])
@@ -221,7 +227,8 @@ class InterviewAgent:
                         question_number: int, total_questions: int,
                         history: list | None = None,
                         resume_content: str = "", jd_content: str = "",
-                        avoid_questions: list | None = None) -> dict:
+                        avoid_questions: list | None = None,
+                        kb_context: str = "") -> dict:
         """提交回答：顺序调 score_answer → [generate_question]，共 1~2 次 LLM 调用"""
         logger.info("Agent 评分第 %d 题...", question_number)
 
@@ -236,6 +243,7 @@ class InterviewAgent:
                 dimension, difficulty, history_json,
                 resume_content, jd_content,
                 avoid_questions,
+                kb_context=kb_context,
             )
 
         return {"score": score, "next_question": next_q, "is_complete": is_complete}
@@ -252,3 +260,4 @@ class InterviewAgent:
                     "summary": "报告生成失败", "learning_suggestions": [],
                     "dimension_scores": {}, "question_analysis": [],
                     "keyword_analysis": {}, "difficulty_distribution": {}}
+

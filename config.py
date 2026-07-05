@@ -15,7 +15,10 @@ os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
 EMBEDDING_MODEL = 'BAAI/bge-small-zh-v1.5'  # 中文优化，512维，约95MB
 
 # ========== ChromaDB 持久化路径 ==========
-CHROMA_PERSIST_DIR = './chroma_db'
+CHROMA_PERSIST_DIR = os.getenv('CHROMA_PERSIST_DIR', './chroma_db')
+
+# ========== BM25 索引路径 ==========
+BM25_INDEX_PATH = os.getenv('BM25_INDEX_PATH', './bm25_index.json')
 
 # ========== SQLite 路径 ==========
 SQLITE_PATH = os.getenv('SQLITE_PATH', './interview_engine.db')
