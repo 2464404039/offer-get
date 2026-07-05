@@ -138,8 +138,8 @@ async def lifespan(app: FastAPI):
 # ────────────────────── 创建应用 ──────────────────────
 
 app = FastAPI(
-    title="Interview Engine",
-    description="AI-Powered Mock Interview System — RAG-based resume analysis + ReAct Agent-driven interview simulation",
+    title="Offer Get",
+    description="AI 面试备战教练 — RAG 知识库研究 + 模拟面试 + 题库管理",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -169,7 +169,7 @@ async def add_request_id(request: Request, call_next):
 @app.get("/health")
 async def health_check():
     """容器编排/负载均衡健康检查"""
-    return {"status": "ok", "service": "interview-engine", "version": "1.0.0"}
+    return {"status": "ok", "service": "offer-get", "version": "2.0.0"}
 
 # ────────────────────── 安全响应头 ──────────────────────
 @app.middleware("http")
