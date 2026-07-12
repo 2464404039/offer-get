@@ -16,5 +16,13 @@ dependencies = [
     "pymupdf>=1.28",
 ]
 
+[project.optional-dependencies]
+eval = [
+    "ragas>=0.2",
+    "datasets>=3.0",
+    "pandas>=2.0",
+    "langchain-openai>=0.2",
+]
+
 [tool.uv]
 dev-dependencies = []
