@@ -700,8 +700,11 @@ def format_quick_output(scores_list: list[dict], cases: list[EvalCase],
         if val >= 0:
             if baseline and metric in baseline:
                 diff = val - baseline[metric]
-                sign = "+" if diff >= 0 else ""
-                indicator = f"  ({sign}{diff:.2f})"
+                if abs(diff) < 0.001:
+                    indicator = f"  ( {diff:.2f})"
+                else:
+                    sign = "+" if diff > 0 else ""
+                    indicator = f"  ({sign}{diff:.2f})"
                 lines.append(f"    {metric}: {val:.2f}{indicator}")
             else:
                 lines.append(f"    {metric}: {val:.2f}")
@@ -1236,6 +1239,39 @@ Free lunch and gym membership for employees.
 """
         engine.add_document(99999, "_eval_seed.md", seed_doc)
         print("  Seeded 1 document with company org info")
+
+    # ── 面试场景种子文档（始终添加，ID=99998）──
+    try:
+        parent_col = engine._get_parent_collection()
+        existing = parent_col.get(ids=["eval_interview_seed"])
+        if not existing or not existing.get("documents"):
+            interview_doc = """# 中国互联网公司面试指南
+
+## 字节跳动面试流程与考察重点
+字节跳动面试流程：通常包含3-4轮技术面 + 1轮HR面。技术面考察计算机基础（操作系统、网络、数据结构与算法），编程语言深度（Go/Python/Java），系统设计（分布式系统、高并发、数据库设计），以及项目经验深挖。算法题以LeetCode中等难度为主，部分岗位会出困难题。面试节奏较快，每轮45-60分钟，包含算法题和系统设计。面试官倾向于考察候选人的实战能力和问题解决速度。
+
+## 腾讯面试流程与考察重点
+腾讯技术面通常2-3轮，第一轮侧重计算机基础和项目经验，第二轮侧重系统设计和架构能力。面试官会深入追问项目细节，关注候选人的思考过程和深度理解。面试节奏较慢，考察更细致。腾讯偏好问'为什么'，注重大局观和底层原理；字节偏好问'怎么做'，注重实战能力和算法。两家公司的面试风格差异明显——腾讯偏重基础深度和思考方式，字节偏重算法实战和设计能力。
+
+## 阿里巴巴面试流程与考察重点
+阿里巴巴面试流程：通常包含4轮以上，包含技术面、主管面、交叉面、HR面。注重候选人的学习能力和技术视野。考察内容包括Java基础、分布式系统设计、中间件原理、以及项目架构能力。
+
+## 后端开发技术栈指南
+主流语言方面，Go语言在互联网公司使用率持续上升，Java在企业级应用仍占主导，Python在AI和数据领域应用广泛。框架方面，Go常用Gin/Echo，Java常用Spring Boot，Python常用FastAPI/Django。计算机基础必修课：数据结构与算法是面试必考项，推荐刷LeetCode Hot 100和剑指Offer。计算机网络重点掌握TCP三次握手/四次挥手、HTTP协议、DNS解析。数据库与缓存：MySQL是后端面试高频考点，重点掌握索引原理（B+Tree）、SQL优化、事务隔离级别。Redis常考数据类型、缓存策略（缓存穿透/击穿/雪崩）、分布式锁。系统设计入门：对于应届生，需要了解微服务基本概念、消息队列（Kafka/RabbitMQ）的使用场景、负载均衡原理、以及基本的容量估算方法。
+
+## 设计模式考点
+面试官通常考察单例模式（双重检查锁实现）、工厂模式（简单工厂vs工厂方法vs抽象工厂的区别）、策略模式、观察者模式、代理模式等。重点不是背诵UML图，而是理解每种模式解决什么问题、在什么场景下使用。常见面试题：项目中用过哪些设计模式？为什么选择这个模式？
+
+## JVM调优考点
+核心考察点包括：JVM内存模型（堆、栈、方法区、程序计数器）、垃圾回收算法（标记-清除、复制、标记-整理、分代收集）、常见GC收集器（Serial、Parallel、CMS、G1的特点和适用场景）、类加载机制（双亲委派模型）、以及JVM调优参数（-Xms、-Xmx、-XX:+UseG1GC等）。常见面试题：线上OOM怎么排查？CMS和G1有什么区别？
+
+## 项目经验建议
+独立完成一个包含用户认证、CRUD操作、数据库交互、缓存优化、Docker部署的全栈项目，面试时能清晰描述架构设计和技术选型理由。项目经验要能说清楚：为什么做这个项目、遇到什么困难、怎么解决的、有什么收获。
+"""
+            engine.add_document(99998, "eval_interview_seed", interview_doc)
+            print("  Seeded 1 interview guide document")
+    except Exception as e:
+        print(f"  Note: Could not add interview seed doc: {e}")
 
     return engine
 
