@@ -1,0 +1,59 @@
+{
+  "timestamp": "2026-07-12T18:52:54.307855",
+  "judge_model": "deepseek-chat",
+  "mode": "quick",
+  "num_cases": 5,
+  "elapsed_sec": 76.4,
+  "average": {
+    "context_precision": 0.32,
+    "context_recall": 0.4207,
+    "faithfulness": 0.32
+  },
+  "per_case": [
+    {
+      "question": "字节跳动AI Agent一面问了哪些具体问题？",
+      "question_type": "exact_match",
+      "metrics": {
+        "context_precision": 0.2,
+        "context_recall": 0.9412,
+        "faithfulness": 1.0
+      }
+    },
+    {
+      "question": "腾讯面试官怎么考察Agent的评估体系？除了准率还有哪些关键指标？",
+      "question_type": "synonym_rewrite",
+      "metrics": {
+        "context_precision": 0.3,
+        "context_recall": 0.0,
+        "faithfulness": 0.0
+      }
+    },
+    {
+      "question": "RAG能解决LLM的哪些问题？一套完整的RAG流程包含哪些步骤？",
+      "question_type": "multi_hop",
+      "metrics": {
+        "context_precision": 0.2,
+        "context_recall": 0.0909,
+        "faithfulness": 0.0
+      }
+    },
+    {
+      "question": "那个，我想问一下，就是字节和阿里在招AI Agent的时候，那个，面试主要考什么方向啊？",
+      "question_type": "noise_resistant",
+      "metrics": {
+        "context_precision": 0.9,
+        "context_recall": 0.5714,
+        "faithfulness": 0.4
+      }
+    },
+    {
+      "question": "拼多多AI Agent岗位的面试流程是什么？",
+      "question_type": "boundary_rejection",
+      "metrics": {
+        "context_precision": 0.0,
+        "context_recall": 0.5,
+        "faithfulness": 0.2
+      }
+    }
+  ]
+}

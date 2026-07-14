@@ -1,0 +1,188 @@
+{
+  "timestamp": "2026-07-12T19:10:08.084761",
+  "judge_model": "deepseek-chat",
+  "mode": "grid",
+  "num_configs": 12,
+  "results": [
+    {
+      "config_label": "BM25=0.2, VECTOR=0.5, krrf=40",
+      "params": {
+        "BM25_WEIGHT": 0.2,
+        "VECTOR_WEIGHT": 0.5,
+        "k_rrf": 40.0
+      },
+      "metrics": {
+        "context_precision": 0.36,
+        "context_recall": 0.4207,
+        "faithfulness": 0.2902
+      },
+      "elapsed_sec": 79.5,
+      "is_current": false
+    },
+    {
+      "config_label": "BM25=0.2, VECTOR=0.5, krrf=60",
+      "params": {
+        "BM25_WEIGHT": 0.2,
+        "VECTOR_WEIGHT": 0.5,
+        "k_rrf": 60.0
+      },
+      "metrics": {
+        "context_precision": 0.36,
+        "context_recall": 0.4207,
+        "faithfulness": 0.2838
+      },
+      "elapsed_sec": 75.3,
+      "is_current": false
+    },
+    {
+      "config_label": "BM25=0.2, VECTOR=0.7, krrf=40",
+      "params": {
+        "BM25_WEIGHT": 0.2,
+        "VECTOR_WEIGHT": 0.7,
+        "k_rrf": 40.0
+      },
+      "metrics": {
+        "context_precision": 0.34,
+        "context_recall": 0.5843,
+        "faithfulness": 0.4059
+      },
+      "elapsed_sec": 69.3,
+      "is_current": false
+    },
+    {
+      "config_label": "BM25=0.2, VECTOR=0.7, krrf=60",
+      "params": {
+        "BM25_WEIGHT": 0.2,
+        "VECTOR_WEIGHT": 0.7,
+        "k_rrf": 60.0
+      },
+      "metrics": {
+        "context_precision": 0.34,
+        "context_recall": 0.5843,
+        "faithfulness": 0.4416
+      },
+      "elapsed_sec": 82.9,
+      "is_current": false
+    },
+    {
+      "config_label": "BM25=0.2, VECTOR=0.9, krrf=40",
+      "params": {
+        "BM25_WEIGHT": 0.2,
+        "VECTOR_WEIGHT": 0.9,
+        "k_rrf": 40.0
+      },
+      "metrics": {
+        "context_precision": 0.36,
+        "context_recall": 0.5843,
+        "faithfulness": 0.3385
+      },
+      "elapsed_sec": 77.1,
+      "is_current": false
+    },
+    {
+      "config_label": "BM25=0.2, VECTOR=0.9, krrf=60",
+      "params": {
+        "BM25_WEIGHT": 0.2,
+        "VECTOR_WEIGHT": 0.9,
+        "k_rrf": 60.0
+      },
+      "metrics": {
+        "context_precision": 0.34,
+        "context_recall": 0.5843,
+        "faithfulness": 0.3376
+      },
+      "elapsed_sec": 81.9,
+      "is_current": false
+    },
+    {
+      "config_label": "BM25=0.4, VECTOR=0.5, krrf=40",
+      "params": {
+        "BM25_WEIGHT": 0.4,
+        "VECTOR_WEIGHT": 0.5,
+        "k_rrf": 40.0
+      },
+      "metrics": {
+        "context_precision": 0.32,
+        "context_recall": 0.4025,
+        "faithfulness": 0.2845
+      },
+      "elapsed_sec": 76.9,
+      "is_current": false
+    },
+    {
+      "config_label": "BM25=0.4, VECTOR=0.5, krrf=60",
+      "params": {
+        "BM25_WEIGHT": 0.4,
+        "VECTOR_WEIGHT": 0.5,
+        "k_rrf": 60.0
+      },
+      "metrics": {
+        "context_precision": 0.32,
+        "context_recall": 0.4025,
+        "faithfulness": 0.25
+      },
+      "elapsed_sec": 76.7,
+      "is_current": false
+    },
+    {
+      "config_label": "BM25=0.4, VECTOR=0.7, krrf=40",
+      "params": {
+        "BM25_WEIGHT": 0.4,
+        "VECTOR_WEIGHT": 0.7,
+        "k_rrf": 40.0
+      },
+      "metrics": {
+        "context_precision": 0.32,
+        "context_recall": 0.4207,
+        "faithfulness": 0.3328
+      },
+      "elapsed_sec": 77.3,
+      "is_current": false
+    },
+    {
+      "config_label": "BM25=0.4, VECTOR=0.7, krrf=60",
+      "params": {
+        "BM25_WEIGHT": 0.4,
+        "VECTOR_WEIGHT": 0.7,
+        "k_rrf": 60.0
+      },
+      "metrics": {
+        "context_precision": 0.32,
+        "context_recall": 0.4207,
+        "faithfulness": 0.4167
+      },
+      "elapsed_sec": 73.9,
+      "is_current": false
+    },
+    {
+      "config_label": "BM25=0.4, VECTOR=0.9, krrf=40",
+      "params": {
+        "BM25_WEIGHT": 0.4,
+        "VECTOR_WEIGHT": 0.9,
+        "k_rrf": 40.0
+      },
+      "metrics": {
+        "context_precision": 0.32,
+        "context_recall": 0.4207,
+        "faithfulness": 0.3103
+      },
+      "elapsed_sec": 72.3,
+      "is_current": false
+    },
+    {
+      "config_label": "BM25=0.4, VECTOR=0.9, krrf=60",
+      "params": {
+        "BM25_WEIGHT": 0.4,
+        "VECTOR_WEIGHT": 0.9,
+        "k_rrf": 60.0
+      },
+      "metrics": {
+        "context_precision": 0.32,
+        "context_recall": 0.4207,
+        "faithfulness": 0.3409
+      },
+      "elapsed_sec": 77.0,
+      "is_current": false
+    }
+  ]
+}

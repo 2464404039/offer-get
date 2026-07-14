@@ -1,0 +1,55 @@
+{
+  "timestamp": "2026-07-06T12:31:48.579267",
+  "judge_model": "deepseek-chat",
+  "num_test_cases": 24,
+  "results": [
+    {
+      "config": "A. Vector Only (pure vector)",
+      "metrics": {
+        "context_precision": 0.375,
+        "context_recall": 0.4882,
+        "faithfulness": 0.6628,
+        "answer_relevancy": 0.6723,
+        "answer_correctness": 0.9028,
+        "context_entity_recall": 0.5511
+      },
+      "elapsed_sec": 397.4
+    },
+    {
+      "config": "B. BM25 Only (keyword)",
+      "metrics": {
+        "context_precision": 0.0,
+        "context_recall": 0.0,
+        "faithfulness": 0.0,
+        "answer_relevancy": 0.0,
+        "answer_correctness": 0.125,
+        "context_entity_recall": 0.0
+      },
+      "elapsed_sec": 87.5
+    },
+    {
+      "config": "C. Hybrid RRF (your design) **",
+      "metrics": {
+        "context_precision": 0.375,
+        "context_recall": 0.5021,
+        "faithfulness": 0.6738,
+        "answer_relevancy": 0.7215,
+        "answer_correctness": 0.8924,
+        "context_entity_recall": 0.5511
+      },
+      "elapsed_sec": 311.2
+    },
+    {
+      "config": "D. Single-chunk (no Parent)",
+      "metrics": {
+        "context_precision": 0.2917,
+        "context_recall": 0.7743,
+        "faithfulness": 0.9427,
+        "answer_relevancy": 0.7046,
+        "answer_correctness": 0.8924,
+        "context_entity_recall": 0.9325
+      },
+      "elapsed_sec": 345.1
+    }
+  ]
+}

@@ -1,0 +1,504 @@
+[
+  {
+    "question": "RAG系统的核心流程是什么？",
+    "ground_truth": "文档上传→切块（Parent-Child双层）→向量化→存入ChromaDB；用户提问→向量检索+BM25关键词检索→RRF融合排序→扩展Parent上下文→LLM生成回答",
+    "question_type": "extract",
+    "reference_contexts": [
+      "流程：用户上传文档→切分成Parent chunks（2000字）→每个Parent再切Child chunks（300字）→各自向量化后存入ChromaDB（两个集合）→同时构建BM25关键词索引。用户提问→向量检索（Child级）+BM25检索→RRF融合排序→收集匹配的Child所属的Parent ID→提取Parent完整内容→LLM生成回答"
+    ]
+  },
+  {
+    "question": "Child chunk和Parent chunk的大小分别是多少？",
+    "ground_truth": "Child chunk 300字，Parent chunk 2000字",
+    "question_type": "extract",
+    "reference_contexts": [
+      "CHILD_CHUNK_SIZE = 300，PARENT_CHUNK_SIZE = 2000"
+    ]
+  },
+  {
+    "question": "混合检索用了哪两种方法？",
+    "ground_truth": "向量检索（语义相似度）和BM25关键词检索",
+    "question_type": "extract",
+    "reference_contexts": [
+      "混合检索：向量检索 + BM25 关键词检索 → RRF 融合排序"
+    ]
+  },
+  {
+    "question": "RRF融合排序的公式是什么？",
+    "ground_truth": "score(d) = VECTOR_WEIGHT / (k + rank_vector(d)) + BM25_WEIGHT / (k + rank_bm25(d))，其中k=60",
+    "question_type": "extract",
+    "reference_contexts": [
+      "RRF公式：score(d) = VECTOR_WEIGHT / (k + rank_vector(d)) + BM25_WEIGHT / (k + rank_bm25(d))，k_rrf = 60"
+    ]
+  },
+  {
+    "question": "向量权重和BM25权重分别是多少？",
+    "ground_truth": "向量权重0.7，BM25权重0.3",
+    "question_type": "extract",
+    "reference_contexts": [
+      "BM25_WEIGHT = 0.3，VECTOR_WEIGHT = 0.7"
+    ]
+  },
+  {
+    "question": "Embedding模型用的是什么？",
+    "ground_truth": "BAAI/bge-small-zh-v1.5，512维，约95MB，中文优化",
+    "question_type": "extract",
+    "reference_contexts": [
+      "EMBEDDING_MODEL = 'BAAI/bge-small-zh-v1.5'，中文优化，512维，约95MB"
+    ]
+  },
+  {
+    "question": "系统中用什么向量数据库？",
+    "ground_truth": "ChromaDB",
+    "question_type": "extract",
+    "reference_contexts": [
+      "self.chroma_client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)"
+    ]
+  },
+  {
+    "question": "面试Agent的出题规则有哪些？",
+    "ground_truth": "基于项目出题不问简历上没有的技术、针对JD要求的能力提问、区分维度不连续问相同维度、避免与已答题目重复、只出自然语言题不出代码题",
+    "question_type": "extract",
+    "reference_contexts": [
+      "规则：1. 基于项目从候选人实际项目经验出发，不问简历上没有的技术。2. 针对JD要求的能力提问。3. 区分维度不连续问相同维度。4. 避免与已答题目重复。5. 只出自然语言回答的题，不出写代码或SQL的题"
+    ]
+  },
+  {
+    "question": "评分维度有哪些？",
+    "ground_truth": "技术深度、表达清晰度、逻辑性",
+    "question_type": "extract",
+    "reference_contexts": [
+      "SCORE_DIMENSIONS = ['技术深度', '表达清晰度', '逻辑性']"
+    ]
+  },
+  {
+    "question": "如何计算RRF融合后的文档分数？",
+    "ground_truth": "向量排名项VECTOR_WEIGHT/(k+rank_vector)加上BM25排名项BM25_WEIGHT/(k+rank_bm25)，按总分排序取top_k",
+    "question_type": "reason",
+    "reference_contexts": [
+      "score = VECTOR_WEIGHT / (k_rrf + vec_rank)，score += BM25_WEIGHT / (k_rrf + bm25_rank)",
+      "BM25_WEIGHT = 0.3，VECTOR_WEIGHT = 0.7，k_rrf = 60"
+    ]
+  },
+  {
+    "question": "如果有两份简历上传，系统能区分它们吗？为什么？",
+    "ground_truth": "可以区分。ChromaDB中每条chunk的metadata携带doc_id字段，SQLite中每条文档记录也有独立id和user_id，按doc_id隔离查询和删除",
+    "question_type": "reason",
+    "reference_contexts": [
+      "metadatas中记录doc_id和filename",
+      "child_col.add(ids=all_child_ids, embeddings=all_child_embeddings, documents=all_child_docs, metadatas=all_child_metadatas)",
+      "documents表有id主键和user_id字段"
+    ]
+  },
+  {
+    "question": "Chat chunk的重叠字数是多少？",
+    "ground_truth": "50字",
+    "question_type": "extract",
+    "reference_contexts": [
+      "CHILD_OVERLAP = 50"
+    ]
+  },
+  {
+    "question": "如果用户上传了重复文档，系统会怎么处理？",
+    "ground_truth": "通过SHA256内容哈希检测重复，如果已存在则返回409错误，提示文档已存在及上传时间",
+    "question_type": "extract",
+    "reference_contexts": [
+      "content_hash = hashlib.sha256(raw).hexdigest()，existing = await async_get_document_by_hash(content_hash)，如果存在则raise HTTPException(409)"
+    ]
+  },
+  {
+    "question": "系统的认证方式有哪几种？",
+    "ground_truth": "三种：API Key（长期，等于APP_SECRET_KEY）、Session Token（短期，1小时，HMAC签名）、User Token（用户登录后签发，含用户ID和权限）",
+    "question_type": "extract",
+    "reference_contexts": [
+      "验证方式：1. APP_SECRET_KEY→AuthContext(is_admin=True, is_api_key=True)。2. session token→AuthContext(is_session=True)。3. user token→AuthContext(user_id=X, is_admin=False)"
+    ]
+  },
+  {
+    "question": "密码是怎么存储的？",
+    "ground_truth": "PBKDF2-HMAC-SHA256，使用随机16字节salt，迭代10万次，存储格式为 salt.hex() + ':' + dk.hex()",
+    "question_type": "extract",
+    "reference_contexts": [
+      "salt = os.urandom(16)，dk = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)，返回salt.hex() + ':' + dk.hex()"
+    ]
+  },
+  {
+    "question": "Session Token的有效期多长？由什么构成？",
+    "ground_truth": "1小时（3600秒）。由前缀session、过期时间戳、HMAC-SHA256签名（取前16位hex）三部分用冒号拼接而成",
+    "question_type": "reason",
+    "reference_contexts": [
+      "SESSION_TOKEN_EXPIRE = 3600",
+      "payload = f'session:{expiry}'，sig = hmac.new(APP_SECRET_KEY.encode(), payload.encode(), 'sha256').hexdigest()[:16]",
+      "token = f'{payload}:{sig}'"
+    ]
+  },
+  {
+    "question": "面试报告包含哪些内容？",
+    "ground_truth": "总体评分、各维度评分（技术深度/表达清晰度/逻辑性）、每题逐题分析（评分和改进建议）、关键词命中分析、难度分布统计、优势总结、待提升项、学习建议、总评",
+    "question_type": "extract",
+    "reference_contexts": [
+      "输出JSON包含：overall_score、dimension_scores、question_analysis（每题评分摘要和改进建议）、keyword_analysis（对比期望关键词的命中率和遗漏项）、difficulty_distribution、strengths、weaknesses、learning_suggestions、summary"
+    ]
+  },
+  {
+    "question": "Top-K参数表示什么？默认值和取值范围是多少？",
+    "ground_truth": "表示检索返回的子chunk数量。默认值10，取值范围1-20",
+    "question_type": "extract",
+    "reference_contexts": [
+      "TOP_K = 10",
+      "top_k: int = Field(default=5, ge=1, le=20)"
+    ]
+  },
+  {
+    "question": "如果LLM API Key失效，系统会怎么处理？",
+    "ground_truth": "捕获异常并判断错误信息是否包含'api key'/'unauthorized'/'401'，如果是则抛出中文提示'LLM API Key无效或已过期，请检查.env中的LLM_API_KEY'",
+    "question_type": "extract",
+    "reference_contexts": [
+      "if 'api key' in error_msg.lower() or 'unauthorized'... : raise RuntimeError('LLM API Key无效或已过期，请检查.env中的LLM_API_KEY')"
+    ]
+  },
+  {
+    "question": "PDF上传后，系统怎么提取文字？",
+    "ground_truth": "先保存为临时文件，用PyMuPDF（fitz）提取文字。如果是扫描件（前3页文字少于50字符），则提示安装EasyOCR进行OCR识别",
+    "question_type": "extract",
+    "reference_contexts": [
+      "tmp = NamedTemporaryFile(delete=False, suffix='.pdf')，content = extract_text(tmp.name)",
+      "extract_text调用is_scanned_pdf检测，扫描件用easyocr"
+    ]
+  },
+  {
+    "question": "ReviewAgent的面试流程为什么是确定性剧本而不是ReAct循环？",
+    "ground_truth": "因为面试流程是顺序确定的：分析简历→出题→评分→下一题→生成报告。不需要ReAct的tool calling推理步骤，使用确定性剧本更简单高效",
+    "question_type": "reason",
+    "reference_contexts": [
+      "面试流程是确定性剧本，顺序调LLM即可，tool calling的推理步骤是多余开销。每次用户操作触发：score_answer→[generate_question]→final"
+    ]
+  },
+  {
+    "question": "为什么Top-K和Temperature参数允许用户调整？",
+    "ground_truth": "Top-K控制检索段落数量，更多段落提供更全面的上下文但也可能引入噪声。Temperature控制LLM输出的创造性，低温度适合事实性问答，高温度适合创意性回答",
+    "question_type": "reason",
+    "reference_contexts": [
+      "top_k: int = Field(default=5, ge=1, le=20)，temperature: float = Field(default=0.6, ge=0, le=1)",
+      "检索段落数和温度可调"
+    ]
+  },
+  {
+    "question": "Parent-Child双层结构的目的是什么？",
+    "ground_truth": "Child层（小块）用于精确检索匹配，提高命中精度；Parent层（大块）用于给LLM提供完整上下文，避免信息碎片化。兼顾检索精度和上下文完整性",
+    "question_type": "reason",
+    "reference_contexts": [
+      "Child: 小chunk，用于检索匹配（精度高）。Parent: 大chunk，用于给LLM提供上下文（信息完整）",
+      "流程：向量检索（Child级）+BM25检索→RRF融合排序→收集匹配的Child所属的Parent ID→提取Parent完整内容→LLM生成回答"
+    ]
+  },
+  {
+    "question": "为什么混合检索中向量权重(0.7)比BM25权重(0.3)高？",
+    "ground_truth": "因为语义理解比关键词匹配更重要。面试场景的问题往往是自然语言描述，用向量语义匹配更能理解问题意图。BM25作为补充，确保精确关键词也能命中",
+    "question_type": "reason",
+    "reference_contexts": [
+      "BM25_WEIGHT = 0.3，VECTOR_WEIGHT = 0.7",
+      "混合检索：向量检索 + BM25关键词检索→RRF融合排序"
+    ]
+  },
+  {
+    "question": "/prep/analyze的功能是什么？",
+    "ground_truth": "一键全局分析：基于知识库中的所有面经、JD和技术博客，分析面试趋势、高频考点Top5、面试流程特点、常见翻车点和应对策略、与简历的差距分析",
+    "question_type": "extract",
+    "reference_contexts": [
+      "请全面分析知识库中的所有面经、JD和技术博客，给出：1.目标公司/岗位的高频考点Top5 2.面试流程特点 3.常见翻车点和应对策略 4.与简历的差距分析"
+    ]
+  },
+  {
+    "question": "反作弊规则有哪些？",
+    "ground_truth": "如果回答直接复制/重复了题目原文，总分直接给0分。如果回答答非所问、敷衍了事，总分直接给0分。只有真正展示了理解、经验和思考的回答才能得到5分以上",
+    "question_type": "extract",
+    "reference_contexts": [
+      "反作弊规则：回答直接复制/重复了题目原文→总分直接给0。答非所问、敷衍了事→总分直接给0。只有真正展示了理解、经验和思考的回答才能得到5分以上"
+    ]
+  },
+  {
+    "question": "系统用什么模型做LLM推理？",
+    "ground_truth": "通过环境变量LLM_MODEL配置，默认deepseek-chat，兼容OpenAI API格式，可换成任何兼容模型",
+    "question_type": "extract",
+    "reference_contexts": [
+      "LLM_MODEL = os.getenv('LLM_MODEL', 'deepseek-chat')",
+      "LLM_API_BASE = os.getenv('LLM_API_BASE', 'https://api.deepseek.com/v1')"
+    ]
+  },
+  {
+    "question": "RAG引擎的默认Temperature是多少？",
+    "ground_truth": "0.6，适用于平衡准确性和创造性",
+    "question_type": "extract",
+    "reference_contexts": [
+      "temperature=0.6，适中的温度，平衡准确性和创造性"
+    ]
+  },
+  {
+    "question": "文档上传支持哪些格式？",
+    "ground_truth": ".txt、.md、.pdf、.docx四种格式",
+    "question_type": "extract",
+    "reference_contexts": [
+      "if not file.filename.endswith(('.txt', '.md', '.pdf', '.docx')): raise HTTPException(400)"
+    ]
+  },
+  {
+    "question": "如果用户上传了一个50MB以上的文件会怎样？",
+    "ground_truth": "被content-length前置拦截，返回413错误，提示文件过大，最大支持50MB",
+    "question_type": "extract",
+    "reference_contexts": [
+      "MAX_UPLOAD_SIZE = 50 * 1024 * 1024",
+      "if content_length and int(content_length) > MAX_UPLOAD_SIZE: raise HTTPException(413, f'文件过大，最大支持{MAX_UPLOAD_SIZE // 1024 // 1024}MB')"
+    ]
+  },
+  {
+    "question": "题库功能的作用是什么？",
+    "ground_truth": "用户可以手动收藏或添加面试题目，面试开始时可从题库抽题作为部分问题，剩余由AI补充。支持按用户隔离",
+    "question_type": "reason",
+    "reference_contexts": [
+      "save_question：收藏题目到题库",
+      "get_questions：获取题库列表，按用户隔离",
+      "question_ids参数从题库抽题，剩余由AI补充"
+    ]
+  },
+  {
+    "question": "上传文档后系统做了哪些操作？",
+    "ground_truth": "文件类型和大小校验→SHA256去重检测→提取文字→存入SQLite记录元信息→Parent-Child双层切块→Embedding向量化→存入ChromaDB两个集合→更新BM25索引→更新SQLite的chunk数量",
+    "question_type": "reason",
+    "reference_contexts": [
+      "async_save_document→async_add_document→update_chunk_count",
+      "add_document中：split_text→encode→chromaDB.add→更新BM25索引"
+    ]
+  },
+  {
+    "question": "什么是流式问答（SSE）？",
+    "ground_truth": "Server-Sent Events，服务端逐token向前端推送LLM生成的回答，用户能实时看到回答逐步生成，不需要等待完整响应",
+    "question_type": "extract",
+    "reference_contexts": [
+      "流式问答（SSE）— 逐token推送。StreamingResponse(media_type='text/event-stream')",
+      "for chunk in response: yield {'type': 'token', 'content': delta.content}"
+    ]
+  },
+  {
+    "question": "面试评分函数用的是哪个模型？",
+    "ground_truth": "与主模型相同，由LLM_MODEL配置指定，但评分时temperature固定为0以获得确定性评分结果",
+    "question_type": "extract",
+    "reference_contexts": [
+      "self.llm.chat.completions.create(model=LLM_MODEL, ..., temperature=0)",
+      "LLM_MODEL = os.getenv('LLM_MODEL', 'deepseek-chat')"
+    ]
+  },
+  {
+    "question": "如果ChromaDB返回空结果，RAG引擎怎么处理？",
+    "ground_truth": "返回'没有找到相关文档内容，请先上传文档'。对于hybrid_search，如果Child集合为空则降级为纯向量检索",
+    "question_type": "extract",
+    "reference_contexts": [
+      "if not child_results or not child_results.get('documents'): return []，降级为纯向量检索",
+      "if not sources: return '没有找到相关文档内容，请先上传文档。'"
+    ]
+  },
+  {
+    "question": "面试报告中的备战推荐是什么？",
+    "ground_truth": "基于最弱评分维度（如技术深度得分最低），自动检索知识库中相关学习资料推荐给用户，帮助针对性提升",
+    "question_type": "extract",
+    "reference_contexts": [
+      "weakest = min(dim_scores, key=dim_scores.get)，prep_docs = rag_engine.hybrid_search(f'{weakest} 学习 面试 提升', 3)"
+    ]
+  },
+  {
+    "question": "系统的编程语言和主要技术栈是什么？",
+    "ground_truth": "Python，主要技术栈包括FastAPI、ChromaDB、Sentence-Transformers、BM25、SQLite、PyMuPDF",
+    "question_type": "extract",
+    "reference_contexts": [
+      "FastAPI, ChromaDB, sentence-transformers, rank_bm25, SQLite, fitz(PyMuPDF)",
+      "Python 3.11+"
+    ]
+  },
+  {
+    "question": "SQLite数据库使用了什么模式来优化读写并发？",
+    "ground_truth": "WAL（Write-Ahead Logging）模式，读不阻塞写，写不阻塞读。同时设置了busy_timeout=5000ms和synchronous=NORMAL",
+    "question_type": "extract",
+    "reference_contexts": [
+      "PRAGMA journal_mode=WAL，PRAGMA busy_timeout=5000，PRAGMA synchronous=NORMAL"
+    ]
+  },
+  {
+    "question": "面试题目的难度分几级？",
+    "ground_truth": "三级：easy（简单）、medium（中等）、hard（困难）",
+    "question_type": "extract",
+    "reference_contexts": [
+      "DIFFICULTY_LEVELS = ['easy', 'medium', 'hard']"
+    ]
+  },
+  {
+    "question": "系统监控到用户上传了恶意内容会怎么处理？",
+    "ground_truth": "query注入：直接拦截返回安全过滤器提示。文档内容注入：仅记录日志不做阻断（避免误伤正常文档）。面试答题注入：直接拦截返回0分。邮箱库题目注入：仅记录日志",
+    "question_type": "reason",
+    "reference_contexts": [
+      "query注入拦截→返回安全过滤器",
+      "文档注入仅记录不阻断",
+      "答题注入拦截→返回0分",
+      "出题时扫描resume/jd/kb/avoid_questions，仅记录"
+    ]
+  },
+  {
+    "question": "Anticheat规则中\"表达清晰度\"的评分标准是什么？",
+    "ground_truth": "语言通顺、人类能听懂即可，不要求专业术语，不打比方举例子也没问题。这是三个维度中最宽泛的一个",
+    "question_type": "extract",
+    "reference_contexts": [
+      "表达清晰度：语言通顺、人类能听懂即可，不要求专业术语，不打比方举例子也没问题"
+    ]
+  },
+  {
+    "question": "服务默认监听哪个端口？",
+    "ground_truth": "8765",
+    "question_type": "extract",
+    "reference_contexts": [
+      "PORT = int(os.getenv('PORT', '8765'))"
+    ]
+  },
+  {
+    "question": "BM25索引存在哪里？启动时怎么加载？",
+    "ground_truth": "存储在bm25_index.json文件。启动时从磁盘加载JSON，懒构建BM25Okapi模型，避免冷启动时全量读ChromaDB",
+    "question_type": "extract",
+    "reference_contexts": [
+      "BM25_INDEX_PATH = os.getenv('BM25_INDEX_PATH', './bm25_index.json')",
+      "_load_bm25_cache从磁盘加载JSON，_ensure_bm25_ready懒构建BM25Okapi模型"
+    ]
+  },
+  {
+    "question": "系统最大上传文件大小是多少？",
+    "ground_truth": "50MB",
+    "question_type": "extract",
+    "reference_contexts": [
+      "MAX_UPLOAD_SIZE = 50 * 1024 * 1024"
+    ]
+  },
+  {
+    "question": "如果LLM API返回超时错误，系统会怎么处理？",
+    "ground_truth": "判断错误信息是否包含'timeout'或'timed out'，如果是则抛出中文提示'LLM请求超时，请稍后重试'",
+    "question_type": "extract",
+    "reference_contexts": [
+      "elif 'timeout' in error_msg.lower() or 'timed out'... : raise RuntimeError('LLM请求超时，请稍后重试')"
+    ]
+  },
+  {
+    "question": "一键分析功能会综合分析哪些文档类型？",
+    "ground_truth": "面经（interview_exp）、岗位描述（JD）、技术博客（tech_blog），以及其他所有已上传的文档",
+    "question_type": "extract",
+    "reference_contexts": [
+      "请全面分析知识库中的所有面经、JD和技术博客",
+      "文档类型标签包含：resume、jd、general、interview_exp、tech_blog、note"
+    ]
+  },
+  {
+    "question": "系统如何实现知识库问答的流式推送？",
+    "ground_truth": "LLM开启stream=True，逐chunk处理response，每个token封装为{'type': 'token', 'content': delta.content}，通过yield逐条发送给SSE流",
+    "question_type": "extract",
+    "reference_contexts": [
+      "response = self.llm.chat.completions.create(..., stream=True)",
+      "for chunk in response: delta = chunk.choices[0].delta; yield {'type': 'token', 'content': delta.content}"
+    ]
+  },
+  {
+    "question": "如果同时上传两个同名但内容不同的pdf会怎样？",
+    "ground_truth": "不会冲突。系统按内容SHA256哈希去重，不按文件名。内容不同则哈希不同，两个文件都会入库",
+    "question_type": "reason",
+    "reference_contexts": [
+      "content_hash = hashlib.sha256(raw).hexdigest()，existing = await async_get_document_by_hash(content_hash)"
+    ]
+  },
+  {
+    "question": "面试题目的dimension字段有哪些可能的值？",
+    "ground_truth": "技术深度、项目经验、系统设计、行为面试",
+    "question_type": "extract",
+    "reference_contexts": [
+      "输出JSON格式中的dimension字段：技术深度/项目经验/系统设计/行为面试",
+      "recommended_dimensions: ['技术深度', '项目经验', '系统设计', '行为面试']"
+    ]
+  },
+  {
+    "question": "系统能识别面试回答中的作弊行为吗？",
+    "ground_truth": "可以。反作弊规则会检测回答是否直接复制了题目原文、是否答非所问或敷衍了事，如果检测到则直接给0分",
+    "question_type": "extract",
+    "reference_contexts": [
+      "反作弊规则：回答直接复制/重复了题目原文→总分直接给0。答非所问、敷衍了事→总分直接给0"
+    ]
+  },
+  {
+    "question": "系统的前端是什么技术实现的？",
+    "ground_truth": "纯HTML+CSS+JavaScript，没有使用前端框架。所有API调用通过fetch实现，SSE流式读取通过ReadableStream处理",
+    "question_type": "extract",
+    "reference_contexts": [
+      "前端是templates/index.html，纯静态页面",
+      "fetch(API + '/ask', {method:'POST', ...})，resp.body.getReader()读取流"
+    ]
+  },
+  {
+    "question": "Word文档上传后怎么提取内容？",
+    "ground_truth": "使用python-docx库解析.docx文件，按文档原始顺序提取段落和表格。标题转为Markdown格式（#号层级），表格转为Markdown表格格式，列表项加-前缀",
+    "question_type": "reason",
+    "reference_contexts": [
+      "from docx import Document",
+      "遍历doc.element.body的子元素，段落和表格按原始顺序输出",
+      "标题→#层级，表格→Markdown表格，列表→-前缀"
+    ]
+  },
+  {
+    "question": "一共可以同时进行几轮面试？",
+    "ground_truth": "文档中未提及",
+    "question_type": "boundary",
+    "reference_contexts": []
+  },
+  {
+    "question": "系统支持哪种语言的前端界面？",
+    "ground_truth": "中文，整个前端UI是中文界面，提示文字和按钮标签都是中文",
+    "question_type": "extract",
+    "reference_contexts": [
+      "前端界面为中文：'上传备战资料'、'一键分析'、'开始面试'等"
+    ]
+  },
+  {
+    "question": "系统能生成多少种不同的面试报告？",
+    "ground_truth": "文档中未提及具体数量，每次面试生成一份包含多维度的报告",
+    "question_type": "boundary",
+    "reference_contexts": []
+  },
+  {
+    "question": "用户能删除已上传的单个文档吗？",
+    "ground_truth": "可以。DELETE /documents/{doc_id}接口先删SQLite记录，再删ChromaDB中的向量，再清理BM25索引",
+    "question_type": "extract",
+    "reference_contexts": [
+      "if not await async_delete_document(doc_id): raise HTTPException(404)",
+      "await async_delete_document(doc_id)→删除ChromaDB中属于该doc_id的所有chunk",
+      "rag_engine.async_delete_document(doc_id)"
+    ]
+  },
+  {
+    "question": "这段代码用到了哪些开源库？",
+    "ground_truth": "FastAPI、ChromaDB、Sentence-Transformers、rank-bm25、PyMuPDF（fitz）、python-docx、jieba、LangChain Text Splitters",
+    "question_type": "extract",
+    "reference_contexts": [
+      "import chromadb, from sentence_transformers import SentenceTransformer, from rank_bm25 import BM25Okapi, from langchain_text_splitters import RecursiveCharacterTextSplitter, import fitz, from docx import Document, import jieba"
+    ]
+  },
+  {
+    "question": "用户上传了简历后做了什么处理？",
+    "ground_truth": "先提取文字内容，然后进行SHA256去重检测。通过后存入SQLite记录元信息并标识文档类型，再将内容切分成Parent-Child双层的chunk，向量化后存入ChromaDB",
+    "question_type": "reason",
+    "reference_contexts": [
+      "content = raw.decode('utf-8')对于txt",
+      "content_hash = hashlib.sha256(raw).hexdigest()去重",
+      "async_save_document(filname, content, 0, content_hash, doc_type, user_id)",
+      "chunk_count = rag_engine.async_add_document(doc_id, filname, content)"
+    ]
+  },
+  {
+    "question": "删除文档时，ChromaDB和SQLite的删除顺序是什么？为什么？",
+    "ground_truth": "先删SQLite（失败则抛异常不执行后续），再删ChromaDB。顺序保证：SQLite删除失败则整体失败，不会出现'向量丢了但记录还在'的不一致状态",
+    "question_type": "reason",
+    "reference_contexts": [
+      "1. 先删SQLite记录（失败则抛异常，不会执行后续）。2. 再删向量库"
+    ]
+  }
+]
