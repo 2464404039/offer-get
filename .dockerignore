@@ -5,9 +5,18 @@ __pycache__/
 *.pyc
 chroma_db/
 bm25_index.json
-interview_engine.db*
+*.db*
 .venv/
 cloudflared.exe
 README.md
 Dockerfile
+docker-compose.yml
 .dockerignore
+
+# 评估产出（容器内不需要）
+eval_quick_result.json
+eval_grid_result.json
+eval_results.json
+eval_results.csv
+eval_results_full.csv
+eval_results_full.json

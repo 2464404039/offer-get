@@ -1,11 +1,18 @@
+# ========== 环境 & 密钥 ==========
 .env
+
+# ========== Python 缓存 ==========
 __pycache__/
 *.pyc
-.venv/
+*.pyo
 .pytest_cache/
-.DS_Store
+*.egg-info/
 
-# 运行时数据
+# ========== 虚拟环境 ==========
+.venv/
+venv/
+
+# ========== 运行时数据（服务器持久化，不提交） ==========
 chroma_db/
 bm25_index.json
 *.db
@@ -13,13 +20,24 @@ bm25_index.json
 *.db-wal
 data/
 
-# Docker / 部署
+# ========== 评估运行产出（每次运行都变，不提交） ==========
+eval_quick_result.json
+eval_grid_result.json
+eval_results.json
+eval_results.csv
+eval_results_full.csv
+eval_results_full.json
+
+# ========== Docker / 部署 ==========
 deploy.tar.gz
 cloudflared.exe
 
-# 构建产物
+# ========== 构建产物 ==========
 dist/
 build/
-*.egg-info/
 *.exe
 *.log
+
+# ========== OS 文件 ==========
+.DS_Store
+Thumbs.db

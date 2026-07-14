@@ -1,2 +1,0 @@
-﻿config,samples,elapsed_sec,context_precision,context_recall,faithfulness,answer_relevancy,answer_correctness,context_entity_recall
-C. Hybrid RRF,1,24.3,0.2,0.0,0.1176,0.8571,1.0,0.4
